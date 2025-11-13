@@ -180,4 +180,19 @@ ehthumbs.db
 *.orig
 *.swp
 
-# End of file
+# Local configuration
+appsettings.Development.json
+secrets.json
+*.secret.json
+launchSettings.json
+
+# Blazor and WebAssembly
+wwwroot/dist/
+wwwroot/node_modules/
+wwwroot/build/
+
+# Migrations
+**/Migrations
+
+# Database
+weightTracker.db

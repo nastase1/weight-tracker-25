@@ -10,6 +10,10 @@ namespace WeightTracker.Infrastructure.Context
         {
         }
 
+        public WeightTrackerDbContext()
+        {
+        }
+
         public DbSet<Users> Users { get; set; }
         public DbSet<Records> Records { get; set; }
 
