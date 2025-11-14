@@ -14,4 +14,9 @@
     <Folder Include="Controllers\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\WeightTracker.Infrastructure\WeightTracker.Infrastructure.csproj" />
+    <ProjectReference Include="..\WeightTracker.Domain\WeightTracker.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

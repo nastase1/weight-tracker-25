@@ -1,0 +1,16 @@
+using WeigtTracker.Domain.Entities;
+
+namespace WeightTracker.Domain.IRepositories
+{
+    public interface IUserRepository
+    {
+        Task<Users?> GetByIdAsync(int userId);
+        Task<Users?> GetByEmailAsync(string email);
+        Task<Users?> GetByUsernameAsync(string username);
+        Task<IEnumerable<Users>> GetAllAsync();
+        Task<Users> AddAsync(Users user);
+        Task<Users> UpdateAsync(Users user);
+        Task<bool> DeleteAsync(int userId);
+        Task<bool> ExistsAsync(int userId);
+    }
+}
