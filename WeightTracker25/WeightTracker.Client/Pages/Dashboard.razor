@@ -1,0 +1,247 @@
+@page "/"
+@inject WeightService WeightService
+@inject AuthService AuthService
+
+<div class="container fade-in-up">
+    <div class="dashboard-header">
+        <div class="welcome-section">
+            <h1 class="gradient-text">Welcome back, @(currentUser?.FirstName ?? "User")! 👋</h1>
+            <p class="welcome-subtitle">Track your weight journey and reach your goals</p>
+        </div>
+        
+        <div class="quick-actions">
+            <button class="btn btn-primary animate-pulse" @onclick="ShowAddWeightModal">
+                <span>➕</span>
+                Add Today's Weight
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-4 mb-4">
+        <div class="stat-card fade-in-up stagger-1">
+            <div class="stat-value">@(weightStats?.CurrentWeight.ToString("F1") ?? "-")</div>
+            <div class="stat-label">Current Weight (kg)</div>
+            @if (weightStats?.WeightChange.HasValue == true)
+            {
+                <div class="stat-change @(weightStats.WeightChange >= 0 ? "positive" : "negative")">
+                    @(weightStats.WeightChange >= 0 ? "+" : "")@weightStats.WeightChange.Value.ToString("F1") kg
+                </div>
+            }
+        </div>
+
+        <div class="card fade-in-up stagger-2">
+            <div class="card-body text-center">
+                <div class="stat-value text-primary">@(weightStats?.TotalEntries ?? 0)</div>
+                <div class="stat-label">Total Entries</div>
+            </div>
+        </div>
+
+        <div class="card fade-in-up stagger-3">
+            <div class="card-body text-center">
+                <div class="stat-value text-primary">
+                    @if (weightStats?.TotalChange.HasValue == true)
+                    {
+                        <span class="@(weightStats.TotalChange >= 0 ? "text-danger" : "text-success")">
+                            @(weightStats.TotalChange >= 0 ? "+" : "")@weightStats.TotalChange.Value.ToString("F1")
+                        </span>
+                    }
+                    else
+                    {
+                        <span>-</span>
+                    }
+                </div>
+                <div class="stat-label">Total Change (kg)</div>
+            </div>
+        </div>
+
+        <div class="card fade-in-up stagger-4">
+            <div class="card-body text-center">
+                <div class="stat-value text-primary">
+                    @if (weightStats?.LastEntry.HasValue == true)
+                    {
+                        <span>@weightStats.LastEntry.Value.ToString("MMM dd")</span>
+                    }
+                    else
+                    {
+                        <span>-</span>
+                    }
+                </div>
+                <div class="stat-label">Last Entry</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2">
+        <div class="card fade-in-right stagger-1">
+            <div class="card-header">
+                <h3 class="card-title">📈 Weight Trend</h3>
+                <p class="card-subtitle">Last 30 days</p>
+            </div>
+            <div class="card-body">
+                @if (chartData?.Any() == true)
+                {
+                    <WeightChart Data="chartData" />
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <div class="empty-icon animate-pulse">📈</div>
+                        <h4>No data yet</h4>
+                        <p>Add some weight entries to see your progress chart</p>
+                        <button class="btn btn-primary btn-sm animate-glow" @onclick="ShowAddWeightModal">
+                            Add First Entry
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card fade-in-right stagger-2">
+            <div class="card-header">
+                <h3 class="card-title">📋 Recent Entries</h3>
+                <a href="/profile" class="card-action">View Profile →</a>
+            </div>
+            <div class="card-body p-0">
+                @if (recentEntries?.Any() == true)
+                {
+                    @foreach (var entry in recentEntries.Take(5))
+                    {
+                        <div class="weight-entry-item">
+                            <div class="weight-entry-info">
+                                <div class="weight-entry-date">@entry.Date.ToString("MMM dd, yyyy")</div>
+                                @if (!string.IsNullOrEmpty(entry.Notes))
+                                {
+                                    <div class="weight-entry-notes">@entry.Notes</div>
+                                }
+                            </div>
+                            <div class="weight-entry-weight">@entry.Weight.ToString("F1") kg</div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="empty-state-small">
+                        <div class="empty-icon animate-pulse">📝</div>
+                        <p>No weight entries yet</p>
+                        <button class="btn btn-primary btn-sm" @onclick="ShowAddWeightModal">
+                            Add First Entry
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Weight Modal -->
+@if (showAddWeightModal)
+{
+    <div class="modal-overlay" @onclick="CloseAddWeightModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Add Weight Entry</h3>
+                <button class="modal-close" @onclick="CloseAddWeightModal">&times;</button>
+            </div>
+            
+            <form @onsubmit="SaveWeightEntry" @onsubmit:preventDefault="true">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Date</label>
+                        <input type="date" @bind="newWeightEntry.Date" @bind:format="yyyy-MM-dd" class="form-control" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Weight (kg)</label>
+                        <input type="number" @bind="newWeightEntry.Weight" step="0.1" class="form-control" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Notes (optional)</label>
+                        <textarea @bind="newWeightEntry.Notes" class="form-control" rows="3" placeholder="Add any notes about your weight today..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseAddWeightModal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner"></span>
+                            <span>Saving...</span>
+                        }
+                        else
+                        {
+                            <span>Save Entry</span>
+                        }
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@code {
+    private User? currentUser;
+    private WeightStats? weightStats;
+    private List<ChartDataPoint>? chartData;
+    private List<WeightEntry>? recentEntries;
+    private bool showAddWeightModal = false;
+    private bool isSaving = false;
+    private WeightEntry newWeightEntry = new() { Date = DateTime.Today };
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await AuthService.GetCurrentUserAsync();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var entries = await WeightService.GetWeightEntriesAsync();
+            recentEntries = entries.OrderByDescending(e => e.Date).ToList();
+            weightStats = await WeightService.GetWeightStatsAsync();
+            chartData = await WeightService.GetChartDataAsync();
+        }
+        catch (Exception ex)
+        {
+            // Handle error - in production you'd want proper error handling
+            Console.WriteLine($"Error loading data: {ex.Message}");
+        }
+    }
+
+    private void ShowAddWeightModal()
+    {
+        newWeightEntry = new WeightEntry { Date = DateTime.Today };
+        showAddWeightModal = true;
+    }
+
+    private void CloseAddWeightModal()
+    {
+        showAddWeightModal = false;
+        newWeightEntry = new() { Date = DateTime.Today };
+    }
+
+    private async Task SaveWeightEntry()
+    {
+        try
+        {
+            isSaving = true;
+            newWeightEntry.UserId = currentUser?.Id ?? "";
+            
+            await WeightService.SaveWeightEntryAsync(newWeightEntry);
+            await LoadData();
+            CloseAddWeightModal();
+        }
+        catch (Exception ex)
+        {
+            // Handle error - in production you'd want proper error handling
+            Console.WriteLine($"Error saving entry: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}
