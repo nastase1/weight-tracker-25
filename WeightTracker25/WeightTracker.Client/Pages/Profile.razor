@@ -12,7 +12,7 @@
                     <span class="avatar-initials">@GetUserInitials()</span>
                 </div>
                 <div class="user-info">
-                    <h1 class="user-name">@(currentUser?.FirstName ?? "User") @(currentUser?.LastName ?? "")</h1>
+                    <h1 class="user-name">@(currentUser?.Name ?? "User")</h1>
                     <p class="user-email">@(currentUser?.Email ?? "")</p>
                     <p class="user-since">Member since @(currentUser?.DateJoined.ToString("MMMM yyyy") ?? "")</p>
                 </div>
@@ -20,9 +20,9 @@
         </div>
         
         <div class="profile-actions">
-            <button class="btn btn-outline" @onclick="ShowEditProfile">
-                Edit Profile
-            </button>
+            @* <button class="btn btn-outline" @onclick="ShowEditProfile"> *@
+            @*     Edit Profile *@
+            @* </button> *@
             <button class="btn btn-primary" @onclick="ShowAddWeightModal">
                 Add Weight Entry
             </button>
@@ -440,10 +440,10 @@
     {
         if (currentUser == null) return "U";
         
-        var firstInitial = !string.IsNullOrEmpty(currentUser.FirstName) ? currentUser.FirstName[0].ToString().ToUpper() : "";
-        var lastInitial = !string.IsNullOrEmpty(currentUser.LastName) ? currentUser.LastName[0].ToString().ToUpper() : "";
+        var firstInitial = !string.IsNullOrEmpty(currentUser.Name) ? currentUser.Name[0].ToString().ToUpper() : "";
         
-        return firstInitial + lastInitial;
+        
+        return firstInitial;
     }
 
     private int GetConsecutiveDays()

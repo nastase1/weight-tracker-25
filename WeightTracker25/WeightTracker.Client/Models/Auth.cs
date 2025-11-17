@@ -6,8 +6,7 @@ public class User
 {
     public string Id { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     public DateTime DateJoined { get; set; }
 }
 
@@ -38,10 +37,8 @@ public class RegisterRequest
     public string ConfirmPassword { get; set; } = string.Empty;
     
     [Required(ErrorMessage = "First name is required")]
-    public string FirstName { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     
-    [Required(ErrorMessage = "Last name is required")]
-    public string LastName { get; set; } = string.Empty;
 }
 
 public class AuthResponse

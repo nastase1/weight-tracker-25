@@ -3,6 +3,7 @@
 @using WeightTracker.Client.Services
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components
 @inject AuthService AuthService
 @inject NavigationManager Navigation
 
@@ -61,7 +62,7 @@
                                 Remember me for 30 days
                             </label>
                         </div>
-                        <a href="#" class="forgot-password">Forgot password?</a>
+                        <a href="/auth" class="forgot-password">Forgot password?</a>
                     </div>
 
                     @if (!string.IsNullOrEmpty(errorMessage))
@@ -97,25 +98,13 @@
         {
             <div class="auth-form">
                 <form @onsubmit="HandleRegister" @onsubmit:preventDefault="true">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">First Name</label>
-                            <div class="input-wrapper">
-                                <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                                </svg>
-                                <input type="text" @bind="registerRequest.FirstName" class="form-control" placeholder="First name" />
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Last Name</label>
-                            <div class="input-wrapper">
-                                <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                                </svg>
-                                <input type="text" @bind="registerRequest.LastName" class="form-control" placeholder="Last name" />
-                            </div>
+                    <div class="form-group">
+                        <label class="form-label">Name</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                            </svg>
+                            <input type="text" @bind="registerRequest.Name" class="form-control" placeholder="Name" />
                         </div>
                     </div>
 

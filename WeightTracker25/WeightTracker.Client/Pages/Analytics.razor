@@ -1,5 +1,6 @@
 @page "/analytics"
 @inject WeightService WeightService
+@using Microsoft.AspNetCore.Components
 
 <div class="container">
     <div class="page-header">
@@ -92,7 +93,7 @@
             </div>
 
             <!-- Additional Analytics Grid -->
-            <div class="grid grid-cols-2">
+            <div class="grid grid-cols-2 additional-data">
                 <!-- Weight Distribution -->
                 <div class="card">
                     <div class="card-header">

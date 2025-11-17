@@ -5,13 +5,12 @@
 <div class="container fade-in-up">
     <div class="dashboard-header">
         <div class="welcome-section">
-            <h1 class="gradient-text">Welcome back, @(currentUser?.FirstName ?? "User")! 👋</h1>
+            <h1 class="gradient-text">Welcome back, @(currentUser?.Name ?? "User")!</h1>
             <p class="welcome-subtitle">Track your weight journey and reach your goals</p>
         </div>
         
         <div class="quick-actions">
             <button class="btn btn-primary animate-pulse" @onclick="ShowAddWeightModal">
-                <span>➕</span>
                 Add Today's Weight
             </button>
         </div>
@@ -74,7 +73,7 @@
     <div class="grid grid-cols-2">
         <div class="card fade-in-right stagger-1">
             <div class="card-header">
-                <h3 class="card-title">📈 Weight Trend</h3>
+                <h3 class="card-title">Weight Trend</h3>
                 <p class="card-subtitle">Last 30 days</p>
             </div>
             <div class="card-body">
@@ -85,7 +84,6 @@
                 else
                 {
                     <div class="empty-state">
-                        <div class="empty-icon animate-pulse">📈</div>
                         <h4>No data yet</h4>
                         <p>Add some weight entries to see your progress chart</p>
                         <button class="btn btn-primary btn-sm animate-glow" @onclick="ShowAddWeightModal">
@@ -98,7 +96,7 @@
 
         <div class="card fade-in-right stagger-2">
             <div class="card-header">
-                <h3 class="card-title">📋 Recent Entries</h3>
+                <h3 class="card-title">Recent Entries</h3>
                 <a href="/profile" class="card-action">View Profile →</a>
             </div>
             <div class="card-body p-0">
@@ -121,7 +119,6 @@
                 else
                 {
                     <div class="empty-state-small">
-                        <div class="empty-icon animate-pulse">📝</div>
                         <p>No weight entries yet</p>
                         <button class="btn btn-primary btn-sm" @onclick="ShowAddWeightModal">
                             Add First Entry

@@ -44,8 +44,7 @@ public class AuthService
                 {
                     Id = "1",
                     Email = request.Email,
-                    FirstName = "Demo",
-                    LastName = "User",
+                    Name = "Demo",
                     DateJoined = DateTime.Now.AddDays(-30)
                 };
 
@@ -102,8 +101,7 @@ public class AuthService
             {
                 Id = Guid.NewGuid().ToString(),
                 Email = request.Email,
-                FirstName = request.FirstName,
-                LastName = request.LastName,
+                Name = request.Name,
                 DateJoined = DateTime.Now
             };
 
