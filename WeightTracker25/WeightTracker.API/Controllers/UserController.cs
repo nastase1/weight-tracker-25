@@ -33,7 +33,7 @@ namespace WeightTracker.API.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<Users>> GetUserById(int id)
+        public async Task<ActionResult<Users>> GetUserById(Guid id)
         {
             var user = await _userService.GetByIdAsync(id);
             if (user == null)
@@ -82,7 +82,7 @@ namespace WeightTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<Users>> UpdateUser(int id, [FromBody] Users user)
+        public async Task<ActionResult<Users>> UpdateUser(Guid id, [FromBody] Users user)
         {
             if (id != user.UserId)
             {
@@ -105,7 +105,7 @@ namespace WeightTracker.API.Controllers
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult> DeleteUser(int id)
+        public async Task<ActionResult> DeleteUser(Guid id)
         {
             var result = await _userService.DeleteAsync(id);
             if (!result)
@@ -120,7 +120,7 @@ namespace WeightTracker.API.Controllers
         /// </summary>
         [HttpGet("{id}/exists")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<bool>> UserExists(int id)
+        public async Task<ActionResult<bool>> UserExists(Guid id)
         {
             var exists = await _userService.ExistsAsync(id);
             return Ok(new { exists });

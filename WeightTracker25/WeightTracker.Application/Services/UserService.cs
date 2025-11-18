@@ -13,7 +13,7 @@ namespace WeightTracker.Application.Services
             _userRepository = userRepository;
         }
 
-        public async Task<Users?> GetByIdAsync(int userId)
+        public async Task<Users?> GetByIdAsync(Guid userId)
         {
             return await _userRepository.GetByIdAsync(userId);
         }
@@ -38,7 +38,7 @@ namespace WeightTracker.Application.Services
             return await _userRepository.UpdateAsync(user);
         }
 
-        public async Task<bool> DeleteAsync(int userId)
+        public async Task<bool> DeleteAsync(Guid userId)
         {
             return await _userRepository.DeleteAsync(userId);
         }
@@ -48,7 +48,7 @@ namespace WeightTracker.Application.Services
             return await _userRepository.GetAllAsync();
         }
 
-        public async Task<bool> ExistsAsync(int userId)
+        public async Task<bool> ExistsAsync(Guid userId)
         {
             return await _userRepository.ExistsAsync(userId);
         }

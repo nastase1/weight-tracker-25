@@ -14,14 +14,14 @@ namespace WeightTracker.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<Records?> GetByIdAsync(int recordId)
+        public async Task<Records?> GetByIdAsync(Guid recordId)
         {
             return await _context.Records
                 .Include(r => r.User)
                 .FirstOrDefaultAsync(r => r.RecordId == recordId && r.DeletedAt == null);
         }
 
-        public async Task<IEnumerable<Records>> GetByUserIdAsync(int userId)
+        public async Task<IEnumerable<Records>> GetByUserIdAsync(Guid userId)
         {
             return await _context.Records
                 .Where(r => r.UserId == userId && r.DeletedAt == null)
@@ -29,7 +29,7 @@ namespace WeightTracker.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Records>> GetByUserIdAndDateRangeAsync(int userId, DateTime startDate, DateTime endDate)
+        public async Task<IEnumerable<Records>> GetByUserIdAndDateRangeAsync(Guid userId, DateTime startDate, DateTime endDate)
         {
             return await _context.Records
                 .Where(r => r.UserId == userId
@@ -40,7 +40,7 @@ namespace WeightTracker.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<Records?> GetByUserIdAndDateAsync(int userId, DateTime date)
+        public async Task<Records?> GetByUserIdAndDateAsync(Guid userId, DateTime date)
         {
             var dateOnly = date.Date;
             return await _context.Records
@@ -51,6 +51,7 @@ namespace WeightTracker.Infrastructure.Repositories
 
         public async Task<Records> AddAsync(Records record)
         {
+            record.RecordId = Guid.NewGuid();
             record.CreatedAt = DateTime.UtcNow;
             _context.Records.Add(record);
             await _context.SaveChangesAsync();
@@ -65,7 +66,7 @@ namespace WeightTracker.Infrastructure.Repositories
             return record;
         }
 
-        public async Task<bool> DeleteAsync(int recordId)
+        public async Task<bool> DeleteAsync(Guid recordId)
         {
             var record = await GetByIdAsync(recordId);
             if (record == null) return false;

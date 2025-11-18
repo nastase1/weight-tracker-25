@@ -54,12 +54,17 @@ namespace WeightTracker.Infrastructure.Context
             // Hash pentru parola "password123"
             string passwordHash = HashPassword("password123");
 
+            // Generate Guids for users
+            var user1Id = Guid.NewGuid();
+            var user2Id = Guid.NewGuid();
+            var user3Id = Guid.NewGuid();
+
             // Seed Users
             var users = new[]
             {
                 new Users
                 {
-                    UserId = 1,
+                    UserId = user1Id,
                     Username = "john_doe",
                     Email = "john.doe@example.com",
                     PasswordHash = passwordHash,
@@ -67,7 +72,7 @@ namespace WeightTracker.Infrastructure.Context
                 },
                 new Users
                 {
-                    UserId = 2,
+                    UserId = user2Id,
                     Username = "jane_smith",
                     Email = "jane.smith@example.com",
                     PasswordHash = passwordHash,
@@ -75,7 +80,7 @@ namespace WeightTracker.Infrastructure.Context
                 },
                 new Users
                 {
-                    UserId = 3,
+                    UserId = user3Id,
                     Username = "mike_johnson",
                     Email = "mike.johnson@example.com",
                     PasswordHash = passwordHash,
@@ -85,9 +90,8 @@ namespace WeightTracker.Infrastructure.Context
 
             modelBuilder.Entity<Users>().HasData(users);
 
-            // Seed Records pentru John Doe (UserId = 1) - 3 luni de date
+            // Seed Records pentru John Doe - 3 luni de date
             var recordsJohn = new List<Records>();
-            int recordId = 1;
             decimal startWeight = 85.5m;
             decimal startHeight = 175m;
             var startDate = DateTime.UtcNow.AddMonths(-3);
@@ -97,8 +101,8 @@ namespace WeightTracker.Infrastructure.Context
                 var weight = startWeight - (i * 0.15m) + (decimal)(new Random(i).NextDouble() * 2 - 1);
                 recordsJohn.Add(new Records
                 {
-                    RecordId = recordId++,
-                    UserId = 1,
+                    RecordId = Guid.NewGuid(),
+                    UserId = user1Id,
                     RecordDate = startDate.AddDays(i),
                     Weight = Math.Round(weight, 2),
                     Height = startHeight,
@@ -106,7 +110,7 @@ namespace WeightTracker.Infrastructure.Context
                 });
             }
 
-            // Seed Records pentru Jane Smith (UserId = 2) - 2 luni de date
+            // Seed Records pentru Jane Smith - 2 luni de date
             var recordsJane = new List<Records>();
             startWeight = 68.2m;
             startHeight = 165m;
@@ -117,8 +121,8 @@ namespace WeightTracker.Infrastructure.Context
                 var weight = startWeight + (i * 0.08m) + (decimal)(new Random(i + 1000).NextDouble() * 1.5 - 0.75);
                 recordsJane.Add(new Records
                 {
-                    RecordId = recordId++,
-                    UserId = 2,
+                    RecordId = Guid.NewGuid(),
+                    UserId = user2Id,
                     RecordDate = startDate.AddDays(i),
                     Weight = Math.Round(weight, 2),
                     Height = startHeight,
@@ -126,7 +130,7 @@ namespace WeightTracker.Infrastructure.Context
                 });
             }
 
-            // Seed Records pentru Mike Johnson (UserId = 3) - 1 lună de date
+            // Seed Records pentru Mike Johnson - 1 lună de date
             var recordsMike = new List<Records>();
             startWeight = 92.8m;
             startHeight = 182m;
@@ -137,8 +141,8 @@ namespace WeightTracker.Infrastructure.Context
                 var weight = startWeight - (i * 0.25m) + (decimal)(new Random(i + 2000).NextDouble() * 2.5 - 1.25);
                 recordsMike.Add(new Records
                 {
-                    RecordId = recordId++,
-                    UserId = 3,
+                    RecordId = Guid.NewGuid(),
+                    UserId = user3Id,
                     RecordDate = startDate.AddDays(i),
                     Weight = Math.Round(weight, 2),
                     Height = startHeight,

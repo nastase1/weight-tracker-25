@@ -36,7 +36,7 @@ namespace WeightTracker.API.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<Records>> GetRecordById(int id)
+        public async Task<ActionResult<Records>> GetRecordById(Guid id)
         {
             var record = await _recordService.GetByIdAsync(id);
             if (record == null)
@@ -52,7 +52,7 @@ namespace WeightTracker.API.Controllers
         [HttpGet("user/{userId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<IEnumerable<Records>>> GetRecordsByUserId(int userId)
+        public async Task<ActionResult<IEnumerable<Records>>> GetRecordsByUserId(Guid userId)
         {
             var userExists = await _userService.ExistsAsync(userId);
             if (!userExists)
@@ -70,7 +70,7 @@ namespace WeightTracker.API.Controllers
         [HttpGet("user/{userId}/date/{date}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<Records>> GetRecordByUserIdAndDate(int userId, DateTime date)
+        public async Task<ActionResult<Records>> GetRecordByUserIdAndDate(Guid userId, DateTime date)
         {
             var record = await _recordService.GetByUserIdAndDateAsync(userId, date);
             if (record == null)
@@ -87,7 +87,7 @@ namespace WeightTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<IEnumerable<Records>>> GetRecordsByDateRange(
-            int userId,
+            Guid userId,
             [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate)
         {
@@ -112,7 +112,7 @@ namespace WeightTracker.API.Controllers
         [HttpGet("user/{userId}/interpolated")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<InterpolatedRecordResponse>>> GetInterpolatedRecords(
-            int userId,
+            Guid userId,
             [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate)
         {
@@ -139,7 +139,7 @@ namespace WeightTracker.API.Controllers
         [HttpGet("user/{userId}/smoothed")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<SmoothedRecordResponse>>> GetSmoothedRecords(
-            int userId,
+            Guid userId,
             [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate,
             [FromQuery] int windowDays = 7)
@@ -207,7 +207,7 @@ namespace WeightTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<Records>> UpdateRecord(int id, [FromBody] UpdateRecordRequest request)
+        public async Task<ActionResult<Records>> UpdateRecord(Guid id, [FromBody] UpdateRecordRequest request)
         {
             var existingRecord = await _recordService.GetByIdAsync(id);
             if (existingRecord == null)
@@ -229,7 +229,7 @@ namespace WeightTracker.API.Controllers
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult> DeleteRecord(int id)
+        public async Task<ActionResult> DeleteRecord(Guid id)
         {
             var result = await _recordService.DeleteAsync(id);
             if (!result)

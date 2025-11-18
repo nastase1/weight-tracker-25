@@ -14,7 +14,7 @@ namespace WeightTracker.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<Users?> GetByIdAsync(int userId)
+        public async Task<Users?> GetByIdAsync(Guid userId)
         {
             return await _context.Users
                 .FirstOrDefaultAsync(u => u.UserId == userId && u.DeletedAt == null);
@@ -41,6 +41,7 @@ namespace WeightTracker.Infrastructure.Repositories
 
         public async Task<Users> AddAsync(Users user)
         {
+            user.UserId = Guid.NewGuid();
             user.CreatedAt = DateTime.UtcNow;
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
@@ -55,7 +56,7 @@ namespace WeightTracker.Infrastructure.Repositories
             return user;
         }
 
-        public async Task<bool> DeleteAsync(int userId)
+        public async Task<bool> DeleteAsync(Guid userId)
         {
             var user = await GetByIdAsync(userId);
             if (user == null) return false;
@@ -65,7 +66,7 @@ namespace WeightTracker.Infrastructure.Repositories
             return true;
         }
 
-        public async Task<bool> ExistsAsync(int userId)
+        public async Task<bool> ExistsAsync(Guid userId)
         {
             return await _context.Users
                 .AnyAsync(u => u.UserId == userId && u.DeletedAt == null);

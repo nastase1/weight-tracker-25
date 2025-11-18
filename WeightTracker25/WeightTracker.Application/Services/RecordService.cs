@@ -12,17 +12,17 @@ namespace WeightTracker.Application.Services
             _recordRepository = recordRepository;
         }
 
-        public async Task<Records?> GetByIdAsync(int recordId)
+        public async Task<Records?> GetByIdAsync(Guid recordId)
         {
             return await _recordRepository.GetByIdAsync(recordId);
         }
 
-        public async Task<IEnumerable<Records>> GetByUserIdAsync(int userId)
+        public async Task<IEnumerable<Records>> GetByUserIdAsync(Guid userId)
         {
             return await _recordRepository.GetByUserIdAsync(userId);
         }
 
-        public async Task<Records?> GetByUserIdAndDateAsync(int userId, DateTime date)
+        public async Task<Records?> GetByUserIdAndDateAsync(Guid userId, DateTime date)
         {
             return await _recordRepository.GetByUserIdAndDateAsync(userId, date);
         }
@@ -37,7 +37,7 @@ namespace WeightTracker.Application.Services
             return await _recordRepository.UpdateAsync(record);
         }
 
-        public async Task<bool> DeleteAsync(int recordId)
+        public async Task<bool> DeleteAsync(Guid recordId)
         {
             return await _recordRepository.DeleteAsync(recordId);
         }
@@ -47,7 +47,7 @@ namespace WeightTracker.Application.Services
             return await _recordRepository.GetAllAsync();
         }
 
-        public async Task<IEnumerable<Records>> GetByUserIdAndDateRangeAsync(int userId, DateTime startDate, DateTime endDate)
+        public async Task<IEnumerable<Records>> GetByUserIdAndDateRangeAsync(Guid userId, DateTime startDate, DateTime endDate)
         {
             return await _recordRepository.GetByUserIdAndDateRangeAsync(userId, startDate, endDate);
         }
