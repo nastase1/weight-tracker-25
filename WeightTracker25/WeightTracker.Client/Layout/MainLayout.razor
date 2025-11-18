@@ -1,16 +1,101 @@
-﻿@inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+﻿@using WeightTracker.Client.Services
+@using Microsoft.AspNetCore.Components
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inherits LayoutComponentBase
+@implements IDisposable
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
-
-        <article class="content px-4">
+<div class="main-layout">
+    @if (isAuthenticated)
+    {
+        <header class="header">
+            <nav class="navbar">
+                <div class="container">
+                    <div class="navbar-brand">
+                        <a href="/" class="brand-link">
+                            <span class="brand-text">WeightTracker</span>
+                        </a>
+                    </div>
+                    
+                    <div class="navbar-nav">
+                        <a href="/" class="nav-link @(IsCurrentPage("/") ? "active" : "")">
+                            Dashboard
+                        </a>
+                        <a href="/analytics" class="nav-link @(IsCurrentPage("/analytics") ? "active" : "")">
+                            Analytics
+                        </a>
+                         <a href="/profile" class="nav-link @(IsCurrentPage("/profile") ? "active" : "")">
+                            Profile
+                        </a>
+                        
+                        <div class="nav-divider"></div>
+                        
+                        <button class="btn btn-secondary btn-sm" @onclick="HandleLogout">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </nav>
+        </header>
+        
+        <main class="main-content">
             @Body
-        </article>
-    </main>
+        </main>
+    }
+    else
+    {
+        <div class="auth-layout">
+            @Body
+        </div>
+    }
 </div>
+
+@code {
+    private bool isAuthenticated = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        AuthService.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        
+        if (!isAuthenticated && !Navigation.Uri.Contains("/auth"))
+        {
+            Navigation.NavigateTo("/auth");
+        }
+    }
+
+    private void OnAuthenticationStateChanged(bool authenticated)
+    {
+        isAuthenticated = authenticated;
+        
+        if (authenticated)
+        {
+            Navigation.NavigateTo("/");
+        }
+        else
+        {
+            Navigation.NavigateTo("/auth");
+        }
+        
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+    }
+
+    private bool IsCurrentPage(string path)
+    {
+        var currentPath = new Uri(Navigation.Uri).AbsolutePath;
+        return string.Equals(currentPath, path, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public void Dispose()
+    {
+        if (AuthService != null)
+        {
+            AuthService.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+        }
+    }
+}

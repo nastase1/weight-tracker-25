@@ -1,0 +1,336 @@
+@using Microsoft.AspNetCore.Components
+
+<div class="simple-chart-container">
+    @if (Data?.Any() == true)
+    {
+        <div class="chart-header">
+            <h4>Weight Trend</h4>
+            <div class="time-period-filters">
+                <button class="filter-btn @(selectedPeriod == TimePeriod.Week ? "active" : "")" 
+                        @onclick="() => SelectTimePeriod(TimePeriod.Week)">1W</button>
+                <button class="filter-btn @(selectedPeriod == TimePeriod.Month ? "active" : "")" 
+                        @onclick="() => SelectTimePeriod(TimePeriod.Month)">1M</button>
+                <button class="filter-btn @(selectedPeriod == TimePeriod.ThreeMonths ? "active" : "")" 
+                        @onclick="() => SelectTimePeriod(TimePeriod.ThreeMonths)">3M</button>
+                <button class="filter-btn @(selectedPeriod == TimePeriod.Year ? "active" : "")" 
+                        @onclick="() => SelectTimePeriod(TimePeriod.Year)">1Y</button>
+                <button class="filter-btn @(selectedPeriod == TimePeriod.AllTime ? "active" : "")" 
+                        @onclick="() => SelectTimePeriod(TimePeriod.AllTime)">All</button>
+            </div>
+        </div>
+        <div class="simple-chart">
+            <div class="chart-wrapper">
+                <div class="y-labels">
+                    @for (int i = 0; i <= 5; i++)
+                    {
+                        var weight = maxWeight - (i * (maxWeight - minWeight) / 5);
+                        <div class="y-label">@weight.ToString("F1")</div>
+                    }
+                </div>
+                <div class="chart-area">
+                    <svg viewBox="0 0 700 220" class="chart-svg">
+                        <!-- Horizontal grid lines -->
+                        @for (int i = 0; i <= 5; i++)
+                        {
+                            var y = i * 40;
+                            <line x1="0" y1="@y" x2="700" y2="@y" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,2"/>
+                        }
+                        
+                        <!-- Vertical grid lines -->
+                        @if (chartPoints.Count > 1)
+                        {
+                            @for (int i = 0; i < Math.Min(7, chartPoints.Count); i++)
+                            {
+                                var x = i * 700.0 / Math.Max(1, Math.Min(6, chartPoints.Count - 1));
+                                <line x1="@x" y1="0" x2="@x" y2="200" stroke="#f1f5f9" stroke-width="1"/>
+                            }
+                        }
+                        
+                        <!-- Chart area gradient -->
+                        <defs>
+                            <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.2" />
+                                <stop offset="100%" style="stop-color:#6366f1;stop-opacity:0" />
+                            </linearGradient>
+                        </defs>
+                        
+                        <!-- Chart area fill -->
+                        @if (chartPoints.Count > 1)
+                        {
+                            <path d="@GetAreaPath()" fill="url(#areaGradient)"/>
+                        }
+                        
+                        <!-- Chart line -->
+                        @if (chartPoints.Count > 1)
+                        {
+                            <path d="@GetLinePath()" 
+                                  fill="none" 
+                                  stroke="#6366f1" 
+                                  stroke-width="3"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"/>
+                            
+                            <!-- Data points -->
+                            @foreach (var point in chartPoints)
+                            {
+                                <circle cx="@point.X" cy="@point.Y" r="4" fill="#ffffff" stroke="#6366f1" stroke-width="2"/>
+                                <circle cx="@point.X" cy="@point.Y" r="2" fill="#6366f1"/>
+                            }
+                        }
+                        else if (chartPoints.Count == 1)
+                        {
+                            <!-- Single data point -->
+                            <circle cx="@chartPoints[0].X" cy="@chartPoints[0].Y" r="6" fill="#ffffff" stroke="#6366f1" stroke-width="3"/>
+                            <circle cx="@chartPoints[0].X" cy="@chartPoints[0].Y" r="3" fill="#6366f1"/>
+                        }
+                    </svg>
+                    
+                    <!-- Date labels -->
+                    @if (filteredData.Any())
+                    {
+                        <div class="date-labels">
+                            @foreach (var label in GetDateLabels())
+                            {
+                                <div class="date-label" style="left: @(label.Position)%">@label.Text</div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="chart-footer">
+            <span class="chart-range">@minWeight.ToString("F1") kg - @maxWeight.ToString("F1") kg</span>
+            <span class="chart-info">@filteredData.Count entries • @GetPeriodText()</span>
+        </div>
+    }
+    else
+    {
+        <div class="chart-placeholder">
+            <div class="placeholder-icon">📈</div>
+            <p>No data to display</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<ChartDataPoint>? Data { get; set; }
+
+    private List<ChartPoint> chartPoints = new();
+    private List<ChartDataPoint> filteredData = new();
+    private decimal minWeight = 0;
+    private decimal maxWeight = 0;
+    private TimePeriod selectedPeriod = TimePeriod.Month;
+
+    public enum TimePeriod
+    {
+        Week,
+        Month,
+        ThreeMonths,
+        Year,
+        AllTime
+    }
+
+    public class ChartPoint
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public DateTime Date { get; set; }
+        public decimal Weight { get; set; }
+    }
+
+    public class DateLabel
+    {
+        public string Text { get; set; } = "";
+        public double Position { get; set; }
+    }
+
+    protected override void OnParametersSet()
+    {
+        CalculateChartPoints();
+    }
+
+    private void SelectTimePeriod(TimePeriod period)
+    {
+        selectedPeriod = period;
+        CalculateChartPoints();
+        StateHasChanged();
+    }
+
+    private void CalculateChartPoints()
+    {
+        chartPoints.Clear();
+        filteredData.Clear();
+        
+        if (Data == null || !Data.Any()) return;
+
+        var sortedData = Data.OrderBy(d => d.Date).ToList();
+        var cutoffDate = GetCutoffDate();
+        
+        filteredData = sortedData.Where(d => d.Date >= cutoffDate).ToList();
+        
+        if (!filteredData.Any()) 
+        {
+            // Reset min/max when no data
+            minWeight = 0;
+            maxWeight = 100;
+            return;
+        }
+
+        var actualMinWeight = filteredData.Min(d => d.Weight);
+        var actualMaxWeight = filteredData.Max(d => d.Weight);
+        
+        // Validate data - ensure weights are reasonable
+        if (actualMinWeight < 0 || actualMaxWeight > 1000)
+        {
+            Console.WriteLine($"Warning: Unusual weight data detected. Min: {actualMinWeight}, Max: {actualMaxWeight}");
+            // Filter out unreasonable weights (likely data corruption)
+            filteredData = filteredData.Where(d => d.Weight > 0 && d.Weight < 1000).ToList();
+            if (!filteredData.Any()) 
+            {
+                minWeight = 0;
+                maxWeight = 100;
+                return;
+            }
+            actualMinWeight = filteredData.Min(d => d.Weight);
+            actualMaxWeight = filteredData.Max(d => d.Weight);
+        }
+        
+        // Add reasonable padding to min/max
+        var range = actualMaxWeight - actualMinWeight;
+        if (range == 0)
+        {
+            // If all weights are the same, create a small range around the weight
+            var weight = actualMinWeight;
+            minWeight = weight - 2m; // 2kg below
+            maxWeight = weight + 2m; // 2kg above
+        }
+        else if (range < 5)
+        {
+            // For small ranges, add fixed padding
+            var padding = Math.Max(1m, range * 0.2m);
+            minWeight = actualMinWeight - padding;
+            maxWeight = actualMaxWeight + padding;
+        }
+        else
+        {
+            // For larger ranges, add percentage-based padding
+            var padding = range * 0.1m;
+            minWeight = actualMinWeight - padding;
+            maxWeight = actualMaxWeight + padding;
+        }
+        
+        // Ensure minimum weight doesn't go below 0
+        if (minWeight < 0) minWeight = 0;
+        
+        var chartWidth = 700.0;
+        var chartHeight = 200.0;
+        
+        for (int i = 0; i < filteredData.Count; i++)
+        {
+            var x = filteredData.Count == 1 ? chartWidth / 2 : i * chartWidth / Math.Max(1, filteredData.Count - 1);
+            var normalizedY = (double)(filteredData[i].Weight - minWeight) / (double)(maxWeight - minWeight);
+            var y = chartHeight - (normalizedY * chartHeight);
+            
+            chartPoints.Add(new ChartPoint { 
+                X = x, 
+                Y = y, 
+                Date = filteredData[i].Date,
+                Weight = filteredData[i].Weight
+            });
+        }
+    }
+
+    private DateTime GetCutoffDate()
+    {
+        var now = DateTime.Now;
+        return selectedPeriod switch
+        {
+            TimePeriod.Week => now.AddDays(-7),
+            TimePeriod.Month => now.AddMonths(-1),
+            TimePeriod.ThreeMonths => now.AddMonths(-3),
+            TimePeriod.Year => now.AddYears(-1),
+            TimePeriod.AllTime => DateTime.MinValue,
+            _ => now.AddMonths(-1)
+        };
+    }
+
+    private string GetPeriodText()
+    {
+        return selectedPeriod switch
+        {
+            TimePeriod.Week => "Past Week",
+            TimePeriod.Month => "Past Month",
+            TimePeriod.ThreeMonths => "Past 3 Months",
+            TimePeriod.Year => "Past Year",
+            TimePeriod.AllTime => "All Time",
+            _ => "Past Month"
+        };
+    }
+
+    private string GetLinePath()
+    {
+        if (chartPoints.Count == 0) return "";
+        if (chartPoints.Count == 1) return "";
+        
+        var pathData = new List<string>();
+        pathData.Add($"M {chartPoints[0].X:F1} {chartPoints[0].Y:F1}");
+        
+        for (int i = 1; i < chartPoints.Count; i++)
+        {
+            pathData.Add($"L {chartPoints[i].X:F1} {chartPoints[i].Y:F1}");
+        }
+        
+        return string.Join(" ", pathData);
+    }
+
+    private string GetAreaPath()
+    {
+        if (chartPoints.Count == 0) return "";
+        
+        var pathData = new List<string>();
+        pathData.Add($"M {chartPoints[0].X:F1} 200");
+        pathData.Add($"L {chartPoints[0].X:F1} {chartPoints[0].Y:F1}");
+        
+        for (int i = 1; i < chartPoints.Count; i++)
+        {
+            pathData.Add($"L {chartPoints[i].X:F1} {chartPoints[i].Y:F1}");
+        }
+        
+        pathData.Add($"L {chartPoints[chartPoints.Count - 1].X:F1} 200");
+        pathData.Add("Z");
+        
+        return string.Join(" ", pathData);
+    }
+
+    private List<DateLabel> GetDateLabels()
+    {
+        var labels = new List<DateLabel>();
+        
+        if (!filteredData.Any()) return labels;
+        
+        var labelCount = Math.Min(5, filteredData.Count);
+        
+        for (int i = 0; i < labelCount; i++)
+        {
+            var index = i * Math.Max(1, filteredData.Count - 1) / Math.Max(1, labelCount - 1);
+            if (index >= filteredData.Count) index = filteredData.Count - 1;
+            
+            var date = filteredData[index].Date;
+            var text = selectedPeriod switch
+            {
+                TimePeriod.Week => date.ToString("MMM dd"),
+                TimePeriod.Month => date.ToString("MMM dd"),
+                TimePeriod.ThreeMonths => date.ToString("MMM yyyy"),
+                TimePeriod.Year => date.ToString("MMM yyyy"),
+                TimePeriod.AllTime => date.ToString("MMM yyyy"),
+                _ => date.ToString("MMM dd")
+            };
+            
+            var position = filteredData.Count == 1 ? 50.0 : i * 100.0 / Math.Max(1, labelCount - 1);
+            
+            labels.Add(new DateLabel { Text = text, Position = position });
+        }
+        
+        return labels;
+    }
+}

@@ -1,0 +1,565 @@
+@page "/profile"
+@using WeightTracker.Client.Models
+@using WeightTracker.Client.Components
+@inject WeightService WeightService
+@inject AuthService AuthService
+
+<div class="container fade-in-up">
+    <div class="profile-header">
+        <div class="profile-info-section">
+            <div class="avatar-section">
+                <div class="user-avatar">
+                    <span class="avatar-initials">@GetUserInitials()</span>
+                </div>
+                <div class="user-info">
+                    <h1 class="user-name">@(currentUser?.Name ?? "User")</h1>
+                    <p class="user-email">@(currentUser?.Email ?? "")</p>
+                    <p class="user-since">Member since @(currentUser?.DateJoined.ToString("MMMM yyyy") ?? "")</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="profile-actions">
+            @* <button class="btn btn-outline" @onclick="ShowEditProfile"> *@
+            @*     Edit Profile *@
+            @* </button> *@
+            <button class="btn btn-primary" @onclick="ShowAddWeightModal">
+                Add Weight Entry
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Loading your profile data...</p>
+        </div>
+    }
+    else
+    {
+        <!-- Profile Statistics -->
+        <div class="grid grid-cols-4 mb-6">
+            <div class="stat-card primary">
+                <div class="stat-icon">⚖️</div>
+                <div class="stat-content">
+                    <div class="stat-value">@(weightStats?.CurrentWeight.ToString("F1") ?? "-")</div>
+                    <div class="stat-label">Current Weight</div>
+                    <div class="stat-unit">kg</div>
+                </div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <div class="stat-value">@(weightStats?.TotalEntries ?? 0)</div>
+                    <div class="stat-label">Total Entries</div>
+                    <div class="stat-unit">entries</div>
+                </div>
+            </div>
+
+            <div class="stat-card @(weightStats?.TotalChange >= 0 ? "warning" : "success")">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                    <div class="stat-value">
+                        @if (weightStats?.TotalChange.HasValue == true)
+                        {
+                            <span>@(weightStats.TotalChange >= 0 ? "+" : "")@weightStats.TotalChange.Value.ToString("F1")</span>
+                        }
+                        else
+                        {
+                            <span>-</span>
+                        }
+                    </div>
+                    <div class="stat-label">Total Change</div>
+                    <div class="stat-unit">kg</div>
+                </div>
+            </div>
+
+            <div class="stat-card info">
+                <div class="stat-icon">🔥</div>
+                <div class="stat-content">
+                    <div class="stat-value">@GetConsecutiveDays()</div>
+                    <div class="stat-label">Current Streak</div>
+                    <div class="stat-unit">days</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts and Analytics -->
+        <div class="profile-charts">
+            <!-- Main Weight Trend Chart -->
+            <div class="card chart-card mb-6">
+                <div class="card-header">
+                    <div class="chart-title-section">
+                        <h3 class="card-title">📈 Weight Progress</h3>
+                        <p class="card-subtitle">Track your weight evolution over time</p>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (chartData?.Any() == true)
+                    {
+                        <WeightChart Data="chartData" />
+                    }
+                    else
+                    {
+                        <div class="empty-chart-state">
+                            <div class="empty-icon">📈</div>
+                            <h4>No weight data yet</h4>
+                            <p>Start tracking your weight to see your progress visualization</p>
+                            <button class="btn btn-primary" @onclick="ShowAddWeightModal">
+                                Add Your First Entry
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Analytics Grid -->
+            <div class="grid grid-cols-2 mb-6">
+                <!-- Weight Distribution -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📊 Weight Distribution</h3>
+                        <p class="card-subtitle">Your weight range analysis</p>
+                    </div>
+                    <div class="card-body">
+                        @if (analytics != null)
+                        {
+                            <div class="distribution-stats">
+                                <div class="stat-row">
+                                    <span class="stat-label">Highest Weight:</span>
+                                    <span class="stat-value highlight">@analytics.HighestWeight.ToString("F1") kg</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Lowest Weight:</span>
+                                    <span class="stat-value highlight">@analytics.LowestWeight.ToString("F1") kg</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Average Weight:</span>
+                                    <span class="stat-value highlight">@analytics.AverageWeight.ToString("F1") kg</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Weight Range:</span>
+                                    <span class="stat-value highlight">
+                                        @if (analytics.WeightRange.HasValue)
+                                        {
+                                            @analytics.WeightRange.Value.ToString("F1") <text>kg</text>
+                                        }
+                                        else
+                                        {
+                                            <text>-</text>
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state-small">
+                                <p>No distribution data available</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Progress Insights -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">🎯 Progress Insights</h3>
+                        <p class="card-subtitle">Your journey highlights</p>
+                    </div>
+                    <div class="card-body">
+                        @if (analytics != null && analytics.WeightChange.HasValue)
+                        {
+                            <div class="insights-list">
+                                <div class="insight-item @(analytics.WeightChange < 0 ? "positive" : analytics.WeightChange > 0 ? "negative" : "neutral")">
+                                    <div class="insight-icon">
+                                        @if (analytics.WeightChange < 0)
+                                        {
+                                            <span>📉</span>
+                                        }
+                                        else if (analytics.WeightChange > 0)
+                                        {
+                                            <span>📈</span>
+                                        }
+                                        else
+                                        {
+                                            <span>📊</span>
+                                        }
+                                    </div>
+                                    <div class="insight-content">
+                                        <div class="insight-title">
+                                            @if (analytics.WeightChange < 0)
+                                            {
+                                                <span>Weight Loss</span>
+                                            }
+                                            else if (analytics.WeightChange > 0)
+                                            {
+                                                <span>Weight Gain</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Stable Weight</span>
+                                            }
+                                        </div>
+                                        <div class="insight-description">
+                                            @if (analytics.WeightChange != 0)
+                                            {
+                                                @Math.Abs(analytics.WeightChange.Value).ToString("F1") <text>kg change</text>
+                                            }
+                                            else
+                                            {
+                                                <text>No weight change</text>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="insight-item info">
+                                    <div class="insight-icon">📅</div>
+                                    <div class="insight-content">
+                                        <div class="insight-title">Tracking Consistency</div>
+                                        <div class="insight-description">
+                                            @if (GetConsecutiveDays() > 7)
+                                            {
+                                                <text>Excellent! @GetConsecutiveDays() day streak</text>
+                                            }
+                                            else if (GetConsecutiveDays() > 0)
+                                            {
+                                                <text>@GetConsecutiveDays() day streak - keep it up!</text>
+                                            }
+                                            else
+                                            {
+                                                <text>Start a tracking streak today</text>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @if (analytics.AverageWeeklyChange.HasValue)
+                                {
+                                    <div class="insight-item @(Math.Abs((double)analytics.AverageWeeklyChange.Value) <= 0.5 ? "positive" : "warning")">
+                                        <div class="insight-icon">⚡</div>
+                                        <div class="insight-content">
+                                            <div class="insight-title">Weekly Rate</div>
+                                            <div class="insight-description">
+                                                @Math.Abs((double)analytics.AverageWeeklyChange.Value).ToString("F1") kg/week
+                                                @if (Math.Abs((double)analytics.AverageWeeklyChange.Value) <= 0.5)
+                                                {
+                                                    <span class="rate-indicator positive">(Healthy)</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="rate-indicator warning">(Rapid)</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state-small">
+                                <p>No insights available yet</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">📝 Recent Activity</h3>
+                    <p class="card-subtitle">Your latest weight entries</p>
+                </div>
+                <div class="card-body">
+                    @if (recentEntries?.Any() == true)
+                    {
+                        <div class="activity-list">
+                            @foreach (var entry in showAllActivity ? recentEntries : recentEntries.Take(8))
+                            {
+                                <div class="activity-item">
+                                    <div class="activity-date">
+                                        <div class="date-day">@entry.Date.ToString("dd")</div>
+                                        <div class="date-month">@entry.Date.ToString("MMM")</div>
+                                    </div>
+                                    <div class="activity-content">
+                                        <div class="activity-weight">@entry.Weight.ToString("F1") kg</div>
+                                        @if (!string.IsNullOrEmpty(entry.Notes))
+                                        {
+                                            <div class="activity-notes">@entry.Notes</div>
+                                        }
+                                    </div>
+                                    <div class="activity-trend">
+                                        @{
+                                            var previousEntry = GetPreviousEntry(entry.Date);
+                                            if (previousEntry != null)
+                                            {
+                                                var change = entry.Weight - previousEntry.Weight;
+                                                if (Math.Abs(change) > 0.1m)
+                                                {
+                                                    <span class="trend-indicator @(change >= 0 ? "up" : "down")">
+                                                        @(change >= 0 ? "↗" : "↘") @Math.Abs(change).ToString("F1")
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="trend-indicator stable">→</span>
+                                                }
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        
+                        <div class="activity-footer">
+                            <button class="btn btn-outline btn-sm" @onclick="ShowAllActivity">
+                                @if (showAllActivity)
+                                {
+                                    <span>Show Less ↑</span>
+                                }
+                                else
+                                {
+                                    <span>Show All @recentEntries.Count Entries ↓</span>
+                                }
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="empty-state-small">
+                            <div class="empty-icon">📝</div>
+                            <p>No weight entries yet</p>
+                            <button class="btn btn-primary btn-sm" @onclick="ShowAddWeightModal">
+                                Add Your First Entry
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Add Weight Modal -->
+@if (showAddWeightModal)
+{
+    <div class="modal-overlay" @onclick="CloseAddWeightModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Add Weight Entry</h3>
+                <button class="modal-close" @onclick="CloseAddWeightModal">&times;</button>
+            </div>
+            
+            <EditForm Model="newWeightEntry" OnValidSubmit="SaveWeightEntry">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Date</label>
+                        <InputDate @bind-Value="newWeightEntry.Date" class="form-control" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Weight (kg)</label>
+                        <InputNumber @bind-Value="newWeightEntry.Weight" class="form-control" step="0.1" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Notes (optional)</label>
+                        <InputTextArea @bind-Value="newWeightEntry.Notes" class="form-control" rows="3" placeholder="Add any notes about your weight..." />
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseAddWeightModal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner"></span>
+                            <span>Saving...</span>
+                        }
+                        else
+                        {
+                            <span>Save Entry</span>
+                        }
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    private User? currentUser;
+    private WeightStats? weightStats;
+    private ProfileAnalytics? analytics;
+    private List<ChartDataPoint>? chartData;
+    private List<WeightEntry>? recentEntries;
+    private List<WeightEntry>? allEntries;
+    
+    private bool isLoading = true;
+    private bool showAddWeightModal = false;
+    private bool showEditProfile = false;
+    private bool isSaving = false;
+    private bool showAllActivity = false;
+    
+    private WeightEntry newWeightEntry = new() { Date = DateTime.Today };
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await AuthService.GetCurrentUserAsync();
+        await LoadProfileData();
+    }
+
+    private async Task LoadProfileData()
+    {
+        try
+        {
+            isLoading = true;
+            
+            allEntries = await WeightService.GetWeightEntriesAsync();
+            recentEntries = allEntries.OrderByDescending(e => e.Date).ToList();
+            weightStats = await WeightService.GetWeightStatsAsync();
+            chartData = await WeightService.GetChartDataAsync();
+            analytics = CalculateAnalytics(allEntries);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading profile data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetUserInitials()
+    {
+        if (currentUser == null) return "U";
+        
+        var firstInitial = !string.IsNullOrEmpty(currentUser.Name) ? currentUser.Name[0].ToString().ToUpper() : "";
+        
+        
+        return firstInitial;
+    }
+
+    private int GetConsecutiveDays()
+    {
+        if (allEntries == null || !allEntries.Any()) return 0;
+        
+        var sortedEntries = allEntries.OrderByDescending(e => e.Date).ToList();
+        var consecutive = 0;
+        var currentDate = DateTime.Today;
+        
+        // Check if there's an entry for today, if not start from yesterday
+        if (!sortedEntries.Any(e => e.Date.Date == currentDate.Date))
+        {
+            currentDate = currentDate.AddDays(-1);
+        }
+        
+        foreach (var entry in sortedEntries)
+        {
+            if (entry.Date.Date == currentDate.Date)
+            {
+                consecutive++;
+                currentDate = currentDate.AddDays(-1);
+            }
+            else if (entry.Date.Date < currentDate.Date)
+            {
+                break;
+            }
+        }
+        
+        return consecutive;
+    }
+
+    private WeightEntry? GetPreviousEntry(DateTime currentDate)
+    {
+        if (allEntries == null) return null;
+        
+        return allEntries
+            .Where(e => e.Date.Date < currentDate.Date)
+            .OrderByDescending(e => e.Date)
+            .FirstOrDefault();
+    }
+
+    private ProfileAnalytics? CalculateAnalytics(List<WeightEntry> entries)
+    {
+        if (entries == null || !entries.Any()) return null;
+
+        var weights = entries.Select(e => e.Weight).ToList();
+        var firstEntry = entries.OrderBy(e => e.Date).First();
+        var lastEntry = entries.OrderByDescending(e => e.Date).First();
+        
+        return new ProfileAnalytics
+        {
+            TotalEntries = entries.Count,
+            HighestWeight = weights.Max(),
+            LowestWeight = weights.Min(),
+            AverageWeight = weights.Average(),
+            WeightChange = lastEntry.Weight - firstEntry.Weight,
+            WeightRange = weights.Max() - weights.Min(),
+            ConsecutiveDays = GetConsecutiveDays()
+        };
+    }
+
+    private void ShowAddWeightModal()
+    {
+        newWeightEntry = new WeightEntry { Date = DateTime.Today };
+        showAddWeightModal = true;
+    }
+
+    private void CloseAddWeightModal()
+    {
+        showAddWeightModal = false;
+        newWeightEntry = new() { Date = DateTime.Today };
+    }
+
+    private void ShowEditProfile()
+    {
+        // TODO: Implement edit profile functionality
+        showEditProfile = true;
+    }
+
+    private void ShowAllActivity()
+    {
+        showAllActivity = !showAllActivity;
+    }
+
+    private async Task SaveWeightEntry()
+    {
+        try
+        {
+            isSaving = true;
+            newWeightEntry.UserId = currentUser?.Id ?? "";
+            
+            await WeightService.SaveWeightEntryAsync(newWeightEntry);
+            await LoadProfileData();
+            CloseAddWeightModal();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving entry: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    // Helper class for analytics
+    public class ProfileAnalytics
+    {
+        public int TotalEntries { get; set; }
+        public decimal HighestWeight { get; set; }
+        public decimal LowestWeight { get; set; }
+        public decimal AverageWeight { get; set; }
+        public decimal? WeightChange { get; set; }
+        public decimal? WeightRange { get; set; }
+        public int ConsecutiveDays { get; set; }
+        public decimal? AverageWeeklyChange { get; set; }
+    }
+}
