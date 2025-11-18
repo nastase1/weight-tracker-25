@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\WeightTracker.Infrastructure\WeightTracker.Infrastructure.csproj" />
     <ProjectReference Include="..\WeightTracker.Domain\WeightTracker.Domain.csproj" />
+    <ProjectReference Include="..\WeightTracker.Application\WeightTracker.Application.csproj" />
   </ItemGroup>
 
 </Project>

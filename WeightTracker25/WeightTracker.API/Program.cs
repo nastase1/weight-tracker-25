@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using WeightTracker.Infrastructure.Context;
 using WeightTracker.Infrastructure.Repositories;
 using WeightTracker.Domain.IRepositories;
+using WeightTracker.Application.Services;
+using WeightTracker.Application.IServices;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +22,10 @@ var app = builder.Build();
 // Register repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRecordRepository, RecordRepository>();
+
+// Register services
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IRecordService, RecordService>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

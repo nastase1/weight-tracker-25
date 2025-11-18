@@ -6,9 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Folder Include="IServices\" />
-    <Folder Include="Services\" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\WeightTracker.Domain\WeightTracker.Domain.csproj" />
+		<ProjectReference Include="..\WeightTracker.Infrastructure\WeightTracker.Infrastructure.csproj" />
+	</ItemGroup>
 
 </Project>
