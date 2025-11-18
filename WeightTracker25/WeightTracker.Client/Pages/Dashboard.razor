@@ -28,14 +28,14 @@
             }
         </div>
 
-        <div class="card fade-in-up stagger-2">
+        <div class="second-card card fade-in-up stagger-2">
             <div class="card-body text-center">
                 <div class="stat-value text-primary">@(weightStats?.TotalEntries ?? 0)</div>
                 <div class="stat-label">Total Entries</div>
             </div>
         </div>
 
-        <div class="card fade-in-up stagger-3">
+        <div class="second-card card fade-in-up stagger-3">
             <div class="card-body text-center">
                 <div class="stat-value text-primary">
                     @if (weightStats?.TotalChange.HasValue == true)
@@ -53,7 +53,7 @@
             </div>
         </div>
 
-        <div class="card fade-in-up stagger-4">
+        <div class="second-card card fade-in-up stagger-4">
             <div class="card-body text-center">
                 <div class="stat-value text-primary">
                     @if (weightStats?.LastEntry.HasValue == true)
