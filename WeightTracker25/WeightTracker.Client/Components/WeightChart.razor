@@ -42,15 +42,15 @@
                             @for (int i = 0; i < Math.Min(7, chartPoints.Count); i++)
                             {
                                 var x = i * 700.0 / Math.Max(1, Math.Min(6, chartPoints.Count - 1));
-                                <line x1="@x" y1="0" x2="@x" y2="200" stroke="#f1f5f9" stroke-width="1"/>
+                                <line x1="@x.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" y1="0" x2="@x.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" y2="200" stroke="#f1f5f9" stroke-width="1"/>
                             }
                         }
                         
                         <!-- Chart area gradient -->
                         <defs>
                             <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.2" />
-                                <stop offset="100%" style="stop-color:#6366f1;stop-opacity:0" />
+                                <stop offset="0%" style="stop-color:#f1a363;stop-opacity:0.2" />
+                                <stop offset="100%" style="stop-color:#f1a363;stop-opacity:0" />
                             </linearGradient>
                         </defs>
                         
@@ -65,7 +65,7 @@
                         {
                             <path d="@GetLinePath()" 
                                   fill="none" 
-                                  stroke="#6366f1" 
+                                  stroke="#f1a363" 
                                   stroke-width="3"
                                   stroke-linecap="round"
                                   stroke-linejoin="round"/>
@@ -73,15 +73,19 @@
                             <!-- Data points -->
                             @foreach (var point in chartPoints)
                             {
-                                <circle cx="@point.X" cy="@point.Y" r="4" fill="#ffffff" stroke="#6366f1" stroke-width="2"/>
-                                <circle cx="@point.X" cy="@point.Y" r="2" fill="#6366f1"/>
+                                <g class="data-point" @onmouseenter="() => ShowTooltip(point)" @onmouseleave="HideTooltip">
+                                    <circle cx="@point.X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@point.Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="4" fill="#ffffff" stroke="#f1a363" stroke-width="2"/>
+                                    <circle cx="@point.X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@point.Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="2" fill="#f1a363"/>
+                                </g>
                             }
                         }
                         else if (chartPoints.Count == 1)
                         {
                             <!-- Single data point -->
-                            <circle cx="@chartPoints[0].X" cy="@chartPoints[0].Y" r="6" fill="#ffffff" stroke="#6366f1" stroke-width="3"/>
-                            <circle cx="@chartPoints[0].X" cy="@chartPoints[0].Y" r="3" fill="#6366f1"/>
+                            <g class="data-point" @onmouseenter="() => ShowTooltip(chartPoints[0])" @onmouseleave="HideTooltip">
+                                <circle cx="@chartPoints[0].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@chartPoints[0].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="6" fill="#ffffff" stroke="#f1a363" stroke-width="3"/>
+                                <circle cx="@chartPoints[0].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@chartPoints[0].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="3" fill="#f1a363"/>
+                            </g>
                         }
                     </svg>
                     
@@ -98,6 +102,18 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Tooltip -->
+        @if (showTooltip && tooltipData != null)
+        {
+            <div class="chart-tooltip" style="position: absolute; left: @(tooltipX)px; top: @(tooltipY)px; z-index: 1000;">
+                <div class="tooltip-content">
+                    <div class="tooltip-date">@tooltipData.Date.ToString("MMM dd, yyyy")</div>
+                    <div class="tooltip-weight">@tooltipData.Weight.ToString("F1") kg</div>
+                </div>
+            </div>
+        }
+        
         <div class="chart-footer">
             <span class="chart-range">@minWeight.ToString("F1") kg - @maxWeight.ToString("F1") kg</span>
             <span class="chart-info">@filteredData.Count entries • @GetPeriodText()</span>
@@ -120,6 +136,12 @@
     private decimal minWeight = 0;
     private decimal maxWeight = 0;
     private TimePeriod selectedPeriod = TimePeriod.Month;
+    
+    // Tooltip state
+    private bool showTooltip = false;
+    private ChartPoint? tooltipData = null;
+    private double tooltipX = 0;
+    private double tooltipY = 0;
 
     public enum TimePeriod
     {
@@ -191,8 +213,8 @@
                 maxWeight = 100;
                 return;
             }
-            actualMinWeight = filteredData.Min(d => d.Weight);
-            actualMaxWeight = filteredData.Max(d => d.Weight);
+            actualMinWeight = filteredData.Min(d => d.Weight) - 20;
+            actualMaxWeight = filteredData.Max(d => d.Weight) + 20;
         }
         
         // Add reasonable padding to min/max
@@ -228,7 +250,21 @@
         for (int i = 0; i < filteredData.Count; i++)
         {
             var x = filteredData.Count == 1 ? chartWidth / 2 : i * chartWidth / Math.Max(1, filteredData.Count - 1);
-            var normalizedY = (double)(filteredData[i].Weight - minWeight) / (double)(maxWeight - minWeight);
+            
+            // Calculate Y coordinate with proper normalization
+            double normalizedY;
+            var weightRange = (double)(maxWeight - minWeight);
+            
+            if (weightRange <= 0)
+            {
+                // If all weights are the same or range is invalid, center the points
+                normalizedY = 0.5;
+            }
+            else
+            {
+                normalizedY = (double)(filteredData[i].Weight - minWeight) / weightRange;
+            }
+            
             var y = chartHeight - (normalizedY * chartHeight);
             
             chartPoints.Add(new ChartPoint { 
@@ -273,11 +309,11 @@
         if (chartPoints.Count == 1) return "";
         
         var pathData = new List<string>();
-        pathData.Add($"M {chartPoints[0].X:F1} {chartPoints[0].Y:F1}");
+        pathData.Add($"M {chartPoints[0].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)} {chartPoints[0].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)}");
         
         for (int i = 1; i < chartPoints.Count; i++)
         {
-            pathData.Add($"L {chartPoints[i].X:F1} {chartPoints[i].Y:F1}");
+            pathData.Add($"L {chartPoints[i].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)} {chartPoints[i].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)}");
         }
         
         return string.Join(" ", pathData);
@@ -288,15 +324,15 @@
         if (chartPoints.Count == 0) return "";
         
         var pathData = new List<string>();
-        pathData.Add($"M {chartPoints[0].X:F1} 200");
-        pathData.Add($"L {chartPoints[0].X:F1} {chartPoints[0].Y:F1}");
+        pathData.Add($"M {chartPoints[0].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)} 200");
+        pathData.Add($"L {chartPoints[0].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)} {chartPoints[0].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)}");
         
         for (int i = 1; i < chartPoints.Count; i++)
         {
-            pathData.Add($"L {chartPoints[i].X:F1} {chartPoints[i].Y:F1}");
+            pathData.Add($"L {chartPoints[i].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)} {chartPoints[i].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)}");
         }
         
-        pathData.Add($"L {chartPoints[chartPoints.Count - 1].X:F1} 200");
+        pathData.Add($"L {chartPoints[chartPoints.Count - 1].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)} 200");
         pathData.Add("Z");
         
         return string.Join(" ", pathData);
@@ -332,5 +368,21 @@
         }
         
         return labels;
+    }
+    
+    private void ShowTooltip(ChartPoint point)
+    {
+        showTooltip = true;
+        tooltipData = point;
+        tooltipX = point.X;
+        tooltipY = point.Y;
+        StateHasChanged();
+    }
+    
+    private void HideTooltip()
+    {
+        showTooltip = false;
+        tooltipData = null;
+        StateHasChanged();
     }
 }

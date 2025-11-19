@@ -19,6 +19,16 @@ public class AuthService
         _localStorage = localStorage;
     }
 
+    public async Task InitializeAsync()
+    {
+        var token = await GetTokenAsync();
+        if (!string.IsNullOrEmpty(token))
+        {
+            await SetAuthorizationHeaderAsync();
+            AuthenticationStateChanged?.Invoke(true);
+        }
+    }
+
     public async Task<bool> IsAuthenticatedAsync()
     {
         var token = await _localStorage.GetItemAsync<string>(TOKEN_KEY);
@@ -30,16 +40,33 @@ public class AuthService
         return await _localStorage.GetItemAsync<User>(USER_KEY);
     }
 
+    public async Task<string?> GetTokenAsync()
+    {
+        return await _localStorage.GetItemAsync<string>(TOKEN_KEY);
+    }
+
+    public async Task SetAuthorizationHeaderAsync()
+    {
+        var token = await GetTokenAsync();
+        if (!string.IsNullOrEmpty(token))
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = 
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+        else
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = null;
+        }
+    }
+
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
         try
         {
-            // For demo purposes, we'll simulate authentication
-            // In a real app, this would call your API
-            await Task.Delay(500); // Simulate API call
-
+            // For demo purposes, we'll simulate a successful login
             if (request.Email == "demo@example.com" && request.Password == "password")
             {
+                await Task.Delay(500); // Simulate API call
                 var user = new User
                 {
                     Id = "1",
@@ -53,6 +80,7 @@ public class AuthService
                 await _localStorage.SetItemAsync(TOKEN_KEY, token);
                 await _localStorage.SetItemAsync(USER_KEY, user);
 
+                await SetAuthorizationHeaderAsync();
                 AuthenticationStateChanged?.Invoke(true);
 
                 return new AuthResponse
@@ -63,12 +91,46 @@ public class AuthService
                     User = user
                 };
             }
-
-            return new AuthResponse
+            else
             {
-                Success = false,
-                Message = "Invalid email or password"
-            };
+                var response = await _httpClient.PostAsJsonAsync("api/authentication/login", request);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var authResult = await response.Content.ReadFromJsonAsync<AuthResponse>();
+                    
+                    if (authResult != null && authResult.Success && !string.IsNullOrEmpty(authResult.Token))
+                    {
+                        await _localStorage.SetItemAsync(TOKEN_KEY, authResult.Token);
+                        if (authResult.User != null)
+                        {
+                            await _localStorage.SetItemAsync(USER_KEY, authResult.User);
+                        }
+                        
+                        await SetAuthorizationHeaderAsync();
+                        AuthenticationStateChanged?.Invoke(true);
+                        
+                        return authResult;
+                    }
+                    else
+                    {
+                        return new AuthResponse
+                        {
+                            Success = false,
+                            Message = authResult?.Message ?? "Invalid response from server"
+                        };
+                    }
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    return new AuthResponse
+                    {
+                        Success = false,
+                        Message = $"Login failed: {response.StatusCode} - {errorContent}"
+                    };
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -134,6 +196,7 @@ public class AuthService
     {
         await _localStorage.RemoveItemAsync(TOKEN_KEY);
         await _localStorage.RemoveItemAsync(USER_KEY);
+        _httpClient.DefaultRequestHeaders.Authorization = null;
         AuthenticationStateChanged?.Invoke(false);
     }
 }
