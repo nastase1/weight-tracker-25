@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  weighttracker-api:
+    build:
+      context: .
+      dockerfile: docker/DOCKERFILE
+    container_name: weighttracker-api-dev
+    ports:
+      - "5271:5271"
+      - "7271:7271"  # HTTPS port for development
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5271;https://+:7271
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=password
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+    volumes:
+      - weighttracker-data:/app/data
+      # Mount development certificate (optional)
+      # - ~/.aspnet/https:/https:ro
+    restart: unless-stopped
+
+  weighttracker-client:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.client
+    container_name: weighttracker-client-dev
+    ports:
+      - "8080:80"
+    depends_on:
+      - weighttracker-api
+    restart: unless-stopped
+
+volumes:
+  weighttracker-data:
+    driver: local
