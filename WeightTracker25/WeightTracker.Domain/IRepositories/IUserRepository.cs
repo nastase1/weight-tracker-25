@@ -1,4 +1,4 @@
-using WeigtTracker.Domain.Entities;
+using WeightTracker.Domain.Entities;
 
 namespace WeightTracker.Domain.IRepositories
 {

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace WeigtTracker.Domain.Entities
+namespace WeightTracker.Domain.Entities
 {
     public partial class Records
     {

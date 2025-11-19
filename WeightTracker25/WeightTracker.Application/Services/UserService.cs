@@ -1,6 +1,6 @@
 ﻿using WeightTracker.Application.IServices;
 using WeightTracker.Domain.IRepositories;
-using WeigtTracker.Domain.Entities;
+using WeightTracker.Domain.Entities;
 
 namespace WeightTracker.Application.Services
 {

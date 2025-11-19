@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WeightTracker.Application.IServices;
 using WeightTracker.Infrastructure.Context;
-using WeigtTracker.Domain.Entities;
+using WeightTracker.Domain.Entities;
 
 namespace WeightTracker.API.Controllers
 {

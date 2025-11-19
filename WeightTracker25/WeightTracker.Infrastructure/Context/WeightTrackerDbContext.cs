@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using WeigtTracker.Domain.Entities;
+using WeightTracker.Domain.Entities;
 using System.Security.Cryptography;
 using System.Text;
 

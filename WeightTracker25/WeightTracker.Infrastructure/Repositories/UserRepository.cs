@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using WeigtTracker.Domain.Entities;
+using WeightTracker.Domain.Entities;
 using WeightTracker.Domain.IRepositories;
 using WeightTracker.Infrastructure.Context;
 
