@@ -4,6 +4,7 @@ using WeightTracker.Application.IServices;
 using WeightTracker.Shared.DTOs.Requests.User;
 using Microsoft.AspNetCore.Http.HttpResults;
 using WeightTracker.Shared.DTOs.Responses.User;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WeightTracker.API.Controllers
 {
@@ -24,58 +25,32 @@ namespace WeightTracker.API.Controllers
             _authentificationService = authentificationService;
         }
 
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] UserRegisterRequestDTO request)
         {
-            var user = new UserRegisterRequestDTO
-            {
-                Email = request.Email,
-                Username = request.Username,
-                Password = request.Password
-            };
-            var result = await _authentificationService.RegisterUserAsync(user);
+            var result = await _authentificationService.RegisterUserAsync(request);
+            
             if (!result.Success)
             {
-                return Ok(new UserRegisterResponseDTO
-                {
-                    Success = false,
-                    Message = result.Message
-                });
+                return BadRequest(result);
             }
-            return Ok(new UserRegisterResponseDTO
-            {
-                Success = true,
-                Message = "User registered successfully."
-            });
+            
+            return Ok(result);
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UserLoginRequestDTO request)
         {
-            var user = new UserLoginRequestDTO
-            {
-                Username = request.Username,
-                Password = request.Password
-            };
-            var result = await _authentificationService.LoginUserAsync(user);
+            var result = await _authentificationService.LoginUserAsync(request);
+            
             if (!result.Success)
             {
-                return Ok(new UserLoginResponseDTO
-                {
-                    Success = false,
-                    Token = null,
-                    Message = result.Message
-                });
+                return Unauthorized(result);
             }
-            // Here you would normally generate a JWT token or similar
-            string token = "dummy-jwt-token"; // Replace with actual token generation logic
 
-            return Ok(new UserLoginResponseDTO
-            {
-                Success = true,
-                Token = token,
-                Message = "User logged in successfully."
-            });
-        }
+            return Ok(result);
+        }   
     }
 }

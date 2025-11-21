@@ -1,14 +1,12 @@
 using WeightTracker.Shared.DTOs.Responses.User;
 using WeightTracker.Shared.DTOs.Requests.User;
-using WeightTracker.Domain.Entities;
 
 namespace WeightTracker.Application.IServices
 {
-    public interface IAuthentificationService
+    public interface IAuthenticationService
     {
         Task<UserRegisterResponseDTO> RegisterUserAsync(UserRegisterRequestDTO request);
         Task<UserLoginResponseDTO> LoginUserAsync(UserLoginRequestDTO request);
-        //string GenerateJwtToken(Users user, bool rememberMe);
         string HashPassword(string password);
         bool VerifyPassword(string password, string passwordHash);
     }

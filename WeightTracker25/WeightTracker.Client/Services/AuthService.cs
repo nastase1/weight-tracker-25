@@ -1,6 +1,8 @@
 using Blazored.LocalStorage;
 using WeightTracker.Client.Models;
 using System.Net.Http.Json;
+using WeightTracker.Shared.DTOs.Responses.User;
+using WeightTracker.Shared.DTOs.Requests.User;
 
 namespace WeightTracker.Client.Services;
 
@@ -59,7 +61,7 @@ public class AuthService
         }
     }
 
-    public async Task<AuthResponse> LoginAsync(LoginRequest request)
+    public async Task<UserLoginResponseDTO> LoginAsync(LoginRequest request)
     {
         try
         {
@@ -83,61 +85,81 @@ public class AuthService
                 await SetAuthorizationHeaderAsync();
                 AuthenticationStateChanged?.Invoke(true);
 
-                return new AuthResponse
+                return new UserLoginResponseDTO
                 {
                     Success = true,
                     Message = "Login successful",
-                    Token = token,
-                    User = user
+                    Token = token
                 };
             }
             else
             {
-                var response = await _httpClient.PostAsJsonAsync("api/authentication/login", request);
+                var loginDto = new UserLoginRequestDTO
+                {
+                    Email = request.Email,
+                    Password = request.Password,
+                    RememberMe = request.RememberMe
+                };
+
+                var response = await _httpClient.PostAsJsonAsync("api/Authentification/login", loginDto);
                 
                 if (response.IsSuccessStatusCode)
                 {
-                    var authResult = await response.Content.ReadFromJsonAsync<AuthResponse>();
+                    var apiResponse = await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>();
                     
-                    if (authResult != null && authResult.Success && !string.IsNullOrEmpty(authResult.Token))
+                    if (apiResponse != null && apiResponse.Success && !string.IsNullOrEmpty(apiResponse.Token))
                     {
-                        await _localStorage.SetItemAsync(TOKEN_KEY, authResult.Token);
-                        if (authResult.User != null)
+                        await _localStorage.SetItemAsync(TOKEN_KEY, apiResponse.Token);
+                        
+                        // Create a basic user object from the email
+                        var user = new User
                         {
-                            await _localStorage.SetItemAsync(USER_KEY, authResult.User);
-                        }
+                            Id = Guid.NewGuid().ToString(), // Temporary ID
+                            Email = request.Email,
+                            Name = request.Email.Split('@')[0],
+                            DateJoined = DateTime.Now
+                        };
+                        await _localStorage.SetItemAsync(USER_KEY, user);
                         
                         await SetAuthorizationHeaderAsync();
                         AuthenticationStateChanged?.Invoke(true);
                         
-                        return authResult;
+                        return new UserLoginResponseDTO
+                        {
+                            Success = true,
+                            Message = apiResponse.Message ?? "Login successful",
+                            Token = apiResponse.Token
+                        };
                     }
                     else
                     {
-                        return new AuthResponse
+                        return new UserLoginResponseDTO
                         {
                             Success = false,
-                            Message = authResult?.Message ?? "Invalid response from server"
+                            Message = apiResponse?.Message ?? "Invalid response from server",
+                            Token = null
                         };
                     }
                 }
                 else
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    return new AuthResponse
+                    var apiResponse = await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>();
+                    return new UserLoginResponseDTO
                     {
                         Success = false,
-                        Message = $"Login failed: {response.StatusCode} - {errorContent}"
+                        Message = apiResponse?.Message ?? $"Login failed: {response.StatusCode}",
+                        Token = null
                     };
                 }
             }
         }
         catch (Exception ex)
         {
-            return new AuthResponse
+            return new UserLoginResponseDTO
             {
                 Success = false,
-                Message = ex.Message
+                Message = ex.Message,
+                Token = null
             };
         }
     }
@@ -146,10 +168,6 @@ public class AuthService
     {
         try
         {
-            // For demo purposes, we'll simulate registration
-            // In a real app, this would call your API
-            await Task.Delay(500); // Simulate API call
-
             if (request.Password != request.ConfirmPassword)
             {
                 return new AuthResponse
@@ -159,28 +177,76 @@ public class AuthService
                 };
             }
 
-            var user = new User
+            var registerDto = new UserRegisterRequestDTO
             {
-                Id = Guid.NewGuid().ToString(),
                 Email = request.Email,
-                Name = request.Name,
-                DateJoined = DateTime.Now
+                Username = request.Name,
+                Password = request.Password
             };
 
-            var token = "demo_token_" + Guid.NewGuid().ToString();
-
-            await _localStorage.SetItemAsync(TOKEN_KEY, token);
-            await _localStorage.SetItemAsync(USER_KEY, user);
-
-            AuthenticationStateChanged?.Invoke(true);
-
-            return new AuthResponse
+            var response = await _httpClient.PostAsJsonAsync("api/Authentification/register", registerDto);
+            
+            if (response.IsSuccessStatusCode)
             {
-                Success = true,
-                Message = "Registration successful",
-                Token = token,
-                User = user
-            };
+                var apiResponse = await response.Content.ReadFromJsonAsync<UserRegisterResponseDTO>();
+                
+                if (apiResponse != null && apiResponse.Success)
+                {
+                    // After successful registration, automatically log in
+                    var loginResult = await LoginAsync(new LoginRequest
+                    {
+                        Email = request.Email,
+                        Password = request.Password,
+                        RememberMe = false
+                    });
+
+                    if (loginResult.Success)
+                    {
+                        var user = new User
+                        {
+                            Id = Guid.NewGuid().ToString(),
+                            Email = request.Email,
+                            Name = request.Name,
+                            DateJoined = DateTime.Now
+                        };
+
+                        return new AuthResponse
+                        {
+                            Success = true,
+                            Message = "Registration successful",
+                            Token = loginResult.Token,
+                            User = user
+                        };
+                    }
+                    else
+                    {
+                        return new AuthResponse
+                        {
+                            Success = true,
+                            Message = "Registration successful. Please login.",
+                            Token = null,
+                            User = null
+                        };
+                    }
+                }
+                else
+                {
+                    return new AuthResponse
+                    {
+                        Success = false,
+                        Message = apiResponse?.Message ?? "Registration failed"
+                    };
+                }
+            }
+            else
+            {
+                var apiResponse = await response.Content.ReadFromJsonAsync<UserRegisterResponseDTO>();
+                return new AuthResponse
+                {
+                    Success = false,
+                    Message = apiResponse?.Message ?? $"Registration failed: {response.StatusCode}"
+                };
+            }
         }
         catch (Exception ex)
         {
