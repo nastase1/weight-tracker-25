@@ -3,6 +3,8 @@ using WeightTracker.Client.Models;
 using System.Net.Http.Json;
 using WeightTracker.Shared.DTOs.Responses.User;
 using WeightTracker.Shared.DTOs.Requests.User;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace WeightTracker.Client.Services;
 
@@ -65,92 +67,84 @@ public class AuthService
     {
         try
         {
-            // For demo purposes, we'll simulate a successful login
-            if (request.Email == "demo@example.com" && request.Password == "password")
+            var loginDto = new UserLoginRequestDTO
             {
-                await Task.Delay(500); // Simulate API call
-                var user = new User
-                {
-                    Id = "1",
-                    Email = request.Email,
-                    Name = "Demo",
-                    DateJoined = DateTime.Now.AddDays(-30)
-                };
+                Email = request.Email,
+                Password = request.Password,
+                RememberMe = request.RememberMe
+            };
 
-                var token = "demo_token_" + Guid.NewGuid().ToString();
-
-                await _localStorage.SetItemAsync(TOKEN_KEY, token);
-                await _localStorage.SetItemAsync(USER_KEY, user);
-
-                await SetAuthorizationHeaderAsync();
-                AuthenticationStateChanged?.Invoke(true);
-
-                return new UserLoginResponseDTO
-                {
-                    Success = true,
-                    Message = "Login successful",
-                    Token = token
-                };
-            }
-            else
+            var response = await _httpClient.PostAsJsonAsync("api/Authentification/login", loginDto);
+            
+            if (response.IsSuccessStatusCode)
             {
-                var loginDto = new UserLoginRequestDTO
-                {
-                    Email = request.Email,
-                    Password = request.Password,
-                    RememberMe = request.RememberMe
-                };
-
-                var response = await _httpClient.PostAsJsonAsync("api/Authentification/login", loginDto);
+                var apiResponse = await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>();
                 
-                if (response.IsSuccessStatusCode)
+                if (apiResponse != null && apiResponse.Success && !string.IsNullOrEmpty(apiResponse.Token))
                 {
-                    var apiResponse = await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>();
+                    await _localStorage.SetItemAsync(TOKEN_KEY, apiResponse.Token);
+                    await SetAuthorizationHeaderAsync();
                     
-                    if (apiResponse != null && apiResponse.Success && !string.IsNullOrEmpty(apiResponse.Token))
+                    try
                     {
-                        await _localStorage.SetItemAsync(TOKEN_KEY, apiResponse.Token);
-                        
-                        // Create a basic user object from the email
+                        var userResponse = await _httpClient.GetAsync("api/User/me");
+                        if (userResponse.IsSuccessStatusCode)
+                        {
+                            var dbUser = await userResponse.Content.ReadFromJsonAsync<WeightTracker.Domain.Entities.Users>();
+                            if (dbUser != null)
+                            {
+                                var user = new User
+                                {
+                                    Id = dbUser.UserId.ToString(),
+                                    Email = dbUser.Email,
+                                    Name = dbUser.Username,
+                                    DateJoined = dbUser.CreatedAt
+                                };
+                                await _localStorage.SetItemAsync(USER_KEY, user);
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        var userId = await GetUserIdAsync();
                         var user = new User
                         {
-                            Id = Guid.NewGuid().ToString(), // Temporary ID
+                            Id = userId?.ToString() ?? Guid.NewGuid().ToString(),
                             Email = request.Email,
                             Name = request.Email.Split('@')[0],
                             DateJoined = DateTime.Now
                         };
                         await _localStorage.SetItemAsync(USER_KEY, user);
-                        
-                        await SetAuthorizationHeaderAsync();
-                        AuthenticationStateChanged?.Invoke(true);
-                        
-                        return new UserLoginResponseDTO
-                        {
-                            Success = true,
-                            Message = apiResponse.Message ?? "Login successful",
-                            Token = apiResponse.Token
-                        };
                     }
-                    else
+                    
+                    AuthenticationStateChanged?.Invoke(true);
+                    
+                    return new UserLoginResponseDTO
                     {
-                        return new UserLoginResponseDTO
-                        {
-                            Success = false,
-                            Message = apiResponse?.Message ?? "Invalid response from server",
-                            Token = null
-                        };
-                    }
+                        Success = true,
+                        Message = apiResponse.Message ?? "Login successful",
+                        Token = apiResponse.Token
+                    };
                 }
                 else
                 {
-                    var apiResponse = await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>();
                     return new UserLoginResponseDTO
                     {
                         Success = false,
-                        Message = apiResponse?.Message ?? $"Login failed: {response.StatusCode}",
+                        Message = apiResponse?.Message ?? "Invalid response from server",
                         Token = null
                     };
                 }
+            }
+            else
+            {
+                var apiResponse = await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>();
+                return new UserLoginResponseDTO
+                {
+                    Success = false,
+                    Message = apiResponse?.Message ?? $"Login failed: {response.StatusCode}",
+                    Token = null
+                };
             }
         }
         catch (Exception ex)
@@ -192,7 +186,6 @@ public class AuthService
                 
                 if (apiResponse != null && apiResponse.Success)
                 {
-                    // After successful registration, automatically log in
                     var loginResult = await LoginAsync(new LoginRequest
                     {
                         Email = request.Email,
@@ -202,14 +195,8 @@ public class AuthService
 
                     if (loginResult.Success)
                     {
-                        var user = new User
-                        {
-                            Id = Guid.NewGuid().ToString(),
-                            Email = request.Email,
-                            Name = request.Name,
-                            DateJoined = DateTime.Now
-                        };
-
+                        var user = await GetCurrentUserAsync();
+                        
                         return new AuthResponse
                         {
                             Success = true,
@@ -255,6 +242,33 @@ public class AuthService
                 Success = false,
                 Message = ex.Message
             };
+        }
+    }
+
+    public async Task<Guid?> GetUserIdAsync()
+    {
+        try
+        {
+            var token = await GetTokenAsync();
+            if (string.IsNullOrEmpty(token))
+            {
+                return null;
+            }
+
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+            
+            var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub);
+            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId))
+            {
+                return userId;
+            }
+
+            return null;
+        }
+        catch
+        {
+            return null;
         }
     }
 

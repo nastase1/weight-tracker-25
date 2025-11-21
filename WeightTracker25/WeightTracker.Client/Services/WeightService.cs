@@ -1,29 +1,51 @@
-using Blazored.LocalStorage;
 using WeightTracker.Client.Models;
 using System.Net.Http.Json;
+using WeightTracker.Domain.Entities;
+using WeightTracker.Shared.DTOs.Requests;
 
 namespace WeightTracker.Client.Services;
 
 public class WeightService
 {
     private readonly HttpClient _httpClient;
-    private readonly ILocalStorageService _localStorage;
-    private const string STORAGE_KEY = "weight_entries";
+    private readonly AuthService _authService;
 
-    public WeightService(HttpClient httpClient, ILocalStorageService localStorage)
+    public WeightService(HttpClient httpClient, AuthService authService)
     {
         _httpClient = httpClient;
-        _localStorage = localStorage;
+        _authService = authService;
     }
 
     public async Task<List<WeightEntry>> GetWeightEntriesAsync()
     {
         try
         {
-            // For demo purposes, we'll use local storage
-            // In a real app, this would call your API
-            var entries = await _localStorage.GetItemAsync<List<WeightEntry>>(STORAGE_KEY);
-            return entries ?? new List<WeightEntry>();
+            var userId = await _authService.GetUserIdAsync();
+            if (!userId.HasValue)
+            {
+                return new List<WeightEntry>();
+            }
+
+            var response = await _httpClient.GetAsync($"api/Records/user/{userId.Value}");
+            if (!response.IsSuccessStatusCode)
+            {
+                return new List<WeightEntry>();
+            }
+
+            var records = await response.Content.ReadFromJsonAsync<List<Records>>();
+            if (records == null)
+            {
+                return new List<WeightEntry>();
+            }
+
+            return records.Select(r => new WeightEntry
+            {
+                Id = 0,
+                Date = r.RecordDate,
+                Weight = r.Weight,
+                Notes = null,
+                UserId = r.UserId.ToString()
+            }).ToList();
         }
         catch
         {
@@ -39,32 +61,80 @@ public class WeightService
 
     public async Task<WeightEntry> SaveWeightEntryAsync(WeightEntry entry)
     {
-        var entries = await GetWeightEntriesAsync();
-        
-        var existingEntry = entries.FirstOrDefault(e => e.Date.Date == entry.Date.Date);
-        if (existingEntry != null)
+        try
         {
-            existingEntry.Weight = entry.Weight;
-            existingEntry.Notes = entry.Notes;
-        }
-        else
-        {
-            entry.Id = entries.Any() ? entries.Max(e => e.Id) + 1 : 1;
-            entries.Add(entry);
-        }
+            var userId = await _authService.GetUserIdAsync();
+            if (!userId.HasValue)
+            {
+                throw new InvalidOperationException("User not authenticated");
+            }
 
-        await _localStorage.SetItemAsync(STORAGE_KEY, entries);
-        return entry;
+            var existingRecordResponse = await _httpClient.GetAsync($"api/Records/user/{userId.Value}/date/{entry.Date:yyyy-MM-dd}");
+            
+            if (existingRecordResponse.IsSuccessStatusCode)
+            {
+                var existingRecord = await existingRecordResponse.Content.ReadFromJsonAsync<Records>();
+                if (existingRecord != null)
+                {
+                    var updateRequest = new UpdateRecordRequest
+                    {
+                        RecordDate = entry.Date,
+                        Weight = entry.Weight,
+                        Height = existingRecord.Height
+                    };
+
+                    var updateResponse = await _httpClient.PutAsJsonAsync($"api/Records/{existingRecord.RecordId}", updateRequest);
+                    updateResponse.EnsureSuccessStatusCode();
+                }
+            }
+            else
+            {
+                var createRequest = new CreateRecordRequest
+                {
+                    UserId = userId.Value,
+                    RecordDate = entry.Date,
+                    Weight = entry.Weight,
+                    Height = 170
+                };
+
+                var createResponse = await _httpClient.PostAsJsonAsync("api/Records", createRequest);
+                createResponse.EnsureSuccessStatusCode();
+            }
+
+            return entry;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving weight entry: {ex.Message}");
+            throw;
+        }
     }
 
-    public async Task DeleteWeightEntryAsync(int id)
+    public async Task DeleteWeightEntryAsync(DateTime date)
     {
-        var entries = await GetWeightEntriesAsync();
-        var entryToRemove = entries.FirstOrDefault(e => e.Id == id);
-        if (entryToRemove != null)
+        try
         {
-            entries.Remove(entryToRemove);
-            await _localStorage.SetItemAsync(STORAGE_KEY, entries);
+            var userId = await _authService.GetUserIdAsync();
+            if (!userId.HasValue)
+            {
+                throw new InvalidOperationException("User not authenticated");
+            }
+
+            var recordResponse = await _httpClient.GetAsync($"api/Records/user/{userId.Value}/date/{date:yyyy-MM-dd}");
+            if (recordResponse.IsSuccessStatusCode)
+            {
+                var record = await recordResponse.Content.ReadFromJsonAsync<Records>();
+                if (record != null)
+                {
+                    var deleteResponse = await _httpClient.DeleteAsync($"api/Records/{record.RecordId}");
+                    deleteResponse.EnsureSuccessStatusCode();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting weight entry: {ex.Message}");
+            throw;
         }
     }
 

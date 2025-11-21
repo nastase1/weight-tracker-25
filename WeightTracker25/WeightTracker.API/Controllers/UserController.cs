@@ -2,6 +2,8 @@
 using WeightTracker.Application.IServices;
 using WeightTracker.Infrastructure.Context;
 using WeightTracker.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace WeightTracker.API.Controllers
 {
@@ -16,9 +18,28 @@ namespace WeightTracker.API.Controllers
             _userService = userService;
         }
 
-        /// <summary>
-        /// Get all users
-        /// </summary>
+        [HttpGet("me")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<Users>> GetCurrentUser()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized(new { message = "Invalid token" });
+            }
+
+            var user = await _userService.GetByIdAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            return Ok(user);
+        }
+
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<Users>>> GetAllUsers()
@@ -27,9 +48,6 @@ namespace WeightTracker.API.Controllers
             return Ok(users);
         }
 
-        /// <summary>
-        /// Get user by ID
-        /// </summary>
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -43,9 +61,6 @@ namespace WeightTracker.API.Controllers
             return Ok(user);
         }
 
-        /// <summary>
-        /// Get user by email
-        /// </summary>
         [HttpGet("email/{email}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -59,9 +74,6 @@ namespace WeightTracker.API.Controllers
             return Ok(user);
         }
 
-        /// <summary>
-        /// Get user by username
-        /// </summary>
         [HttpGet("username/{username}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -75,9 +87,6 @@ namespace WeightTracker.API.Controllers
             return Ok(user);
         }
 
-        /// <summary>
-        /// Update user
-        /// </summary>
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -99,9 +108,6 @@ namespace WeightTracker.API.Controllers
             return Ok(updatedUser);
         }
 
-        /// <summary>
-        /// Delete user (soft delete)
-        /// </summary>
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -115,9 +121,6 @@ namespace WeightTracker.API.Controllers
             return Ok(new { message = "User deleted successfully" });
         }
 
-        /// <summary>
-        /// Check if user exists
-        /// </summary>
         [HttpGet("{id}/exists")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<bool>> UserExists(Guid id)
