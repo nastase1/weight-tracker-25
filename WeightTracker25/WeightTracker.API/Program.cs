@@ -67,6 +67,13 @@ builder.Services.AddScoped<IAuthentificationService, AuthentificationService>();
 
 var app = builder.Build();
 
+// Ensure database is created and migrations are applied
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<WeightTrackerDbContext>();
+    context.Database.EnsureCreated();
+}
+
 // Configure the HTTP request pipeline.
 // if (app.Environment.IsDevelopment())
 // {
