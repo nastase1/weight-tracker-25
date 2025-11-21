@@ -64,6 +64,7 @@ builder.Services.AddScoped<IRecordRepository, RecordRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRecordService, RecordService>();
 builder.Services.AddScoped<IAuthentificationService, AuthentificationService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 var app = builder.Build();
 

@@ -15,5 +15,6 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://
 builder.Services.AddBlazoredLocalStorage();
 builder.Services.AddScoped<WeightService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<AdminService>();
 
 await builder.Build().RunAsync();

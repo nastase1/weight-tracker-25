@@ -1,0 +1,120 @@
+/* Admin Page Styles */
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+    margin-bottom: 1rem;
+}
+
+.admin-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.admin-subtitle {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.admin-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.search {
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+    background: var(--bg-secondary);
+}
+
+.admin-stats {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.user-list {
+    padding: 1rem;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+}
+
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.user-table th, .user-table td {
+    padding: 0.75rem 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.user-table thead th {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.user-table tbody tr:hover {
+    background: var(--bg-secondary);
+}
+
+.actions {
+    text-align: right;
+}
+
+.empty-state {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    width: 540px;
+    max-width: calc(100% - 2rem);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    overflow: hidden;
+    border: 1px solid var(--border-light);
+}
+
+.modal-header, .modal-footer {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.modal-header { display:flex; justify-content:space-between; align-items:center; }
+.modal-body { padding: 1rem; }
+.modal-close { background: transparent; border: none; font-size: 1.25rem; }
+
+.detail-row { padding: 0.5rem 0; }
+
+@media (max-width: 700px) {
+    .admin-header { flex-direction: column; gap: 0.75rem; align-items: stretch; }
+    .admin-controls { justify-content: flex-end; }
+}
