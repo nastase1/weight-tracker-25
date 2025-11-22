@@ -1,8 +1,7 @@
-namespace WeightTracker.Shared.DTOs.Requests
+namespace WeightTracker.Shared.DTOs.Requests.Record
 {
-    public class CreateRecordRequest
+    public class UpdateRecordRequestDTO
     {
-        public Guid UserId { get; set; }
         public DateTime RecordDate { get; set; }
         public decimal Weight { get; set; }
         public decimal Height { get; set; }

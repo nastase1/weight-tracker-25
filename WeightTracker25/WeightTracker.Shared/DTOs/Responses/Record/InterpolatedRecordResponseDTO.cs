@@ -1,6 +1,6 @@
-namespace WeightTracker.Shared.DTOs.Responses
+namespace WeightTracker.Shared.DTOs.Responses.Record
 {
-    public class InterpolatedRecordResponse
+    public class InterpolatedRecordResponseDTO
     {
         public DateTime Date { get; set; }
         public decimal Weight { get; set; }

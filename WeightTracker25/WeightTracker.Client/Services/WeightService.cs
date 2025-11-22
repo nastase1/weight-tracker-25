@@ -1,7 +1,7 @@
 using WeightTracker.Client.Models;
 using System.Net.Http.Json;
 using WeightTracker.Domain.Entities;
-using WeightTracker.Shared.DTOs.Requests;
+using WeightTracker.Shared.DTOs.Requests.Record;
 
 namespace WeightTracker.Client.Services;
 
@@ -76,7 +76,7 @@ public class WeightService
                 var existingRecord = await existingRecordResponse.Content.ReadFromJsonAsync<Records>();
                 if (existingRecord != null)
                 {
-                    var updateRequest = new UpdateRecordRequest
+                    var updateRequest = new UpdateRecordRequestDTO
                     {
                         RecordDate = entry.Date,
                         Weight = entry.Weight,
@@ -89,7 +89,7 @@ public class WeightService
             }
             else
             {
-                var createRequest = new CreateRecordRequest
+                var createRequest = new CreateRecordRequestDTO
                 {
                     UserId = userId.Value,
                     RecordDate = entry.Date,

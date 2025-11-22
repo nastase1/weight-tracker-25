@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using WeightTracker.Application.IServices;
-using WeightTracker.Shared.DTOs.Requests;
-using WeightTracker.Shared.DTOs.Responses;
+using WeightTracker.Shared.DTOs.Requests.Record;
+using WeightTracker.Shared.DTOs.Responses.Record;
 using WeightTracker.Domain.Entities;
 
 namespace WeightTracker.API.Controllers
@@ -111,7 +111,7 @@ namespace WeightTracker.API.Controllers
         /// </summary>
         [HttpGet("user/{userId}/interpolated")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<InterpolatedRecordResponse>>> GetInterpolatedRecords(
+        public async Task<ActionResult<IEnumerable<InterpolatedRecordResponseDTO>>> GetInterpolatedRecords(
             Guid userId,
             [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate)
@@ -138,7 +138,7 @@ namespace WeightTracker.API.Controllers
         /// </summary>
         [HttpGet("user/{userId}/smoothed")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<SmoothedRecordResponse>>> GetSmoothedRecords(
+        public async Task<ActionResult<IEnumerable<SmoothedRecordResponseDTO>>> GetSmoothedRecords(
             Guid userId,
             [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate,
@@ -172,7 +172,7 @@ namespace WeightTracker.API.Controllers
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<Records>> CreateRecord([FromBody] CreateRecordRequest request)
+        public async Task<ActionResult<Records>> CreateRecord([FromBody] CreateRecordRequestDTO request)
         {
             // Validate user exists
             var userExists = await _userService.ExistsAsync(request.UserId);
@@ -207,7 +207,7 @@ namespace WeightTracker.API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<Records>> UpdateRecord(Guid id, [FromBody] UpdateRecordRequest request)
+        public async Task<ActionResult<Records>> UpdateRecord(Guid id, [FromBody] UpdateRecordRequestDTO request)
         {
             var existingRecord = await _recordService.GetByIdAsync(id);
             if (existingRecord == null)
@@ -240,9 +240,9 @@ namespace WeightTracker.API.Controllers
         }
 
         // Helper methods for interpolation and smoothing
-        private List<InterpolatedRecordResponse> InterpolateData(List<Records> records, DateTime startDate, DateTime endDate)
+        private List<InterpolatedRecordResponseDTO> InterpolateData(List<Records> records, DateTime startDate, DateTime endDate)
         {
-            var result = new List<InterpolatedRecordResponse>();
+            var result = new List<InterpolatedRecordResponseDTO>();
 
             if (!records.Any())
             {
@@ -257,7 +257,7 @@ namespace WeightTracker.API.Controllers
 
                 if (exactRecord != null)
                 {
-                    result.Add(new InterpolatedRecordResponse
+                    result.Add(new InterpolatedRecordResponseDTO
                     {
                         Date = date,
                         Weight = exactRecord.Weight,
@@ -281,7 +281,7 @@ namespace WeightTracker.API.Controllers
                         var interpolatedWeight = before.Weight + (after.Weight - before.Weight) * (decimal)ratio;
                         var interpolatedHeight = before.Height + (after.Height - before.Height) * (decimal)ratio;
 
-                        result.Add(new InterpolatedRecordResponse
+                        result.Add(new InterpolatedRecordResponseDTO
                         {
                             Date = date,
                             Weight = Math.Round(interpolatedWeight, 2),
@@ -292,7 +292,7 @@ namespace WeightTracker.API.Controllers
                     else if (before != null)
                     {
                         // Use last known value
-                        result.Add(new InterpolatedRecordResponse
+                        result.Add(new InterpolatedRecordResponseDTO
                         {
                             Date = date,
                             Weight = before.Weight,
@@ -303,7 +303,7 @@ namespace WeightTracker.API.Controllers
                     else if (after != null)
                     {
                         // Use next known value
-                        result.Add(new InterpolatedRecordResponse
+                        result.Add(new InterpolatedRecordResponseDTO
                         {
                             Date = date,
                             Weight = after.Weight,
@@ -317,9 +317,9 @@ namespace WeightTracker.API.Controllers
             return result;
         }
 
-        private List<SmoothedRecordResponse> SmoothData(List<Records> records, int windowDays)
+        private List<SmoothedRecordResponseDTO> SmoothData(List<Records> records, int windowDays)
         {
-            var result = new List<SmoothedRecordResponse>();
+            var result = new List<SmoothedRecordResponseDTO>();
 
             if (!records.Any())
             {
@@ -342,7 +342,7 @@ namespace WeightTracker.API.Controllers
                     var avgWeight = windowRecords.Average(r => r.Weight);
                     var avgHeight = windowRecords.Average(r => r.Height);
 
-                    result.Add(new SmoothedRecordResponse
+                    result.Add(new SmoothedRecordResponseDTO
                     {
                         Date = record.RecordDate,
                         OriginalWeight = record.Weight,
