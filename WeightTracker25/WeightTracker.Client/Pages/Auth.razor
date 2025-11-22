@@ -4,6 +4,9 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Components
+@using WeightTracker.Domain.Entities
+@using WeightTracker.Shared.DTOs.Requests.User
+@using WeightTracker.Shared.DTOs.Responses.User
 @inject AuthService AuthService
 @inject NavigationManager Navigation
 
@@ -104,7 +107,7 @@
                             <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
                             </svg>
-                            <input type="text" @bind="registerRequest.Name" class="form-control" placeholder="Name" />
+                            <input type="text" @bind="registerRequest.Username" class="form-control" placeholder="Name" />
                         </div>
                     </div>
 
@@ -188,12 +191,12 @@
     private bool isLoading = false;
     private string errorMessage = string.Empty;
 
-    private LoginRequest loginRequest = new();
-    private RegisterRequest registerRequest = new();
+    private UserLoginRequestDTO loginRequest = new UserLoginRequestDTO();
+    private UserRegisterRequestDTO registerRequest = new UserRegisterRequestDTO();
 
     protected override async Task OnInitializedAsync()
     {
-        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        bool isAuthenticated = await AuthService.IsAuthenticatedAsync();
         if (isAuthenticated)
         {
             Navigation.NavigateTo("/");
@@ -206,8 +209,8 @@
         errorMessage = string.Empty;
         
         // Reset forms
-        loginRequest = new();
-        registerRequest = new();
+        loginRequest = new UserLoginRequestDTO();
+        registerRequest = new UserRegisterRequestDTO();
     }
 
     private async Task HandleLogin()
@@ -217,11 +220,29 @@
             isLoading = true;
             errorMessage = string.Empty;
 
-            var result = await AuthService.LoginAsync(loginRequest);
+            UserLoginResponseDTO? result = await AuthService.LoginAsync(loginRequest);
             
             if (result.Success)
             {
-                Navigation.NavigateTo("/");
+                Users user = await AuthService.GetCurrentUserAsync();
+
+                if (user != null)
+                {
+                    if(user.IsAdmin)
+                    {
+                        Navigation.NavigateTo("/admin");
+                        return;
+                    }
+                    else 
+                    {
+                        Navigation.NavigateTo("/");
+                        return;
+                    }
+                }
+                else
+                {
+                    errorMessage = "Failed to retrieve user details after login.";
+                }
             }
             else
             {
@@ -245,7 +266,7 @@
             isLoading = true;
             errorMessage = string.Empty;
 
-            var result = await AuthService.RegisterAsync(registerRequest);
+            UserRegisterResponseDTO? result = await AuthService.RegisterAsync(registerRequest);
             
             if (result.Success)
             {

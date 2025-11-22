@@ -26,6 +26,7 @@ namespace WeightTracker.Infrastructure.Context
             modelBuilder.Entity<Users>(entity =>
             {
                 entity.HasKey(e => e.UserId);
+                entity.Property(e => e.IsAdmin).HasDefaultValue(false);
                 entity.Property(e => e.Username).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.PasswordHash).IsRequired();
@@ -52,12 +53,13 @@ namespace WeightTracker.Infrastructure.Context
         private void SeedData(ModelBuilder modelBuilder)
         {
             // Hash pentru parola "password123"
-            string passwordHash = HashPassword("password123");
+            string passwordHash = BCrypt.Net.BCrypt.HashPassword("password123");
 
             // Generate Guids for users
             var user1Id = Guid.NewGuid();
             var user2Id = Guid.NewGuid();
             var user3Id = Guid.NewGuid();
+            var adminId = Guid.NewGuid();
 
             // Seed Users
             var users = new[]
@@ -65,6 +67,7 @@ namespace WeightTracker.Infrastructure.Context
                 new Users
                 {
                     UserId = user1Id,
+                    IsAdmin = false,
                     Username = "john_doe",
                     Email = "john.doe@example.com",
                     PasswordHash = passwordHash,
@@ -73,6 +76,7 @@ namespace WeightTracker.Infrastructure.Context
                 new Users
                 {
                     UserId = user2Id,
+                    IsAdmin = false,
                     Username = "jane_smith",
                     Email = "jane.smith@example.com",
                     PasswordHash = passwordHash,
@@ -81,10 +85,20 @@ namespace WeightTracker.Infrastructure.Context
                 new Users
                 {
                     UserId = user3Id,
+                    IsAdmin = false,
                     Username = "mike_johnson",
                     Email = "mike.johnson@example.com",
                     PasswordHash = passwordHash,
                     CreatedAt = DateTime.UtcNow.AddMonths(-2)
+                },
+                new Users
+                {
+                    UserId = adminId,
+                    IsAdmin = true,
+                    Username = "admin_user",
+                    Email = "admin@email.com",
+                    PasswordHash = passwordHash,
+                    CreatedAt = DateTime.UtcNow.AddMonths(-1)
                 }
             };
 
@@ -153,15 +167,6 @@ namespace WeightTracker.Infrastructure.Context
             modelBuilder.Entity<Records>().HasData(recordsJohn);
             modelBuilder.Entity<Records>().HasData(recordsJane);
             modelBuilder.Entity<Records>().HasData(recordsMike);
-        }
-
-        private string HashPassword(string password)
-        {
-            using (var sha256 = SHA256.Create())
-            {
-                var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-                return Convert.ToBase64String(hashedBytes);
-            }
         }
     }
 }

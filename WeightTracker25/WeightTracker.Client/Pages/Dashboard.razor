@@ -1,11 +1,12 @@
 @page "/"
+@using WeightTracker.Domain.Entities
 @inject WeightService WeightService
 @inject AuthService AuthService
 
 <div class="container fade-in-up">
     <div class="dashboard-header">
         <div class="welcome-section">
-            <h1 class="gradient-text">Welcome back, @(currentUser?.Name ?? "User")!</h1>
+            <h1 class="gradient-text">Welcome back, @(currentUser?.Username ?? "User")!</h1>
             <p class="welcome-subtitle">Track your weight journey and reach your goals</p>
         </div>
         
@@ -178,7 +179,7 @@
 }
 
 @code {
-    private User? currentUser;
+    private Users? currentUser;
     private WeightStats? weightStats;
     private List<ChartDataPoint>? chartData;
     private List<WeightEntry>? recentEntries;
@@ -225,7 +226,7 @@
         try
         {
             isSaving = true;
-            newWeightEntry.UserId = currentUser?.Id ?? "";
+            newWeightEntry.UserId = currentUser?.UserId ?? Guid.Empty;
             
             await WeightService.SaveWeightEntryAsync(newWeightEntry);
             await LoadData();

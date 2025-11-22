@@ -10,4 +10,8 @@
     <Folder Include="DTOs\Responses\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\WeightTracker.Domain\WeightTracker.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

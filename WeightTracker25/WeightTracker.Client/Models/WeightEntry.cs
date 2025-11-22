@@ -16,7 +16,7 @@ public class WeightEntry
     [MaxLength(500, ErrorMessage = "Notes cannot exceed 500 characters")]
     public string? Notes { get; set; }
     
-    public string UserId { get; set; } = string.Empty;
+    public Guid UserId { get; set; } = Guid.Empty;
 }
 
 public class WeightStats

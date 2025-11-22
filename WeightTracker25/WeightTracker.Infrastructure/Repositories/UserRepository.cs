@@ -35,7 +35,7 @@ namespace WeightTracker.Infrastructure.Repositories
         public async Task<IEnumerable<Users>> GetAllAsync()
         {
             return await _context.Users
-                .Where(u => u.DeletedAt == null)
+                .Where(u => u.DeletedAt == null).Where(u => u.IsAdmin == false)
                 .ToListAsync();
         }
 

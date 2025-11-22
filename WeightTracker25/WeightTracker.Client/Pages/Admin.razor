@@ -1,5 +1,5 @@
-﻿@page "/admin"
-@using WeightTracker.Client.Models
+@page "/admin"
+@using WeightTracker.Domain.Entities
 @inject WeightTracker.Client.Services.AdminService AdminService
 
 <div class="container fade-in-up admin-page">
@@ -46,9 +46,9 @@
                         @foreach (var u in FilteredUsers)
                         {
                             <tr>
-                                <td>@u.Name</td>
+                                <td>@u.Username</td>
                                 <td>@u.Email</td>
-                                <td>@u.DateJoined.ToString("yyyy-MM-dd")</td>
+                                <td>@u.CreatedAt.ToString("yyyy-MM-dd")</td>
                                 <td class="actions">
                                     <button class="btn btn-sm btn-outline" @onclick="() => OpenUserDetails(u)">View</button>
                                 </td>
@@ -75,10 +75,10 @@
                     <button class="modal-close" @onclick="CloseUserModal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <div class="detail-row"><strong>Name:</strong> @selectedUser.Name</div>
+                    <div class="detail-row"><strong>Name:</strong> @selectedUser.Username</div>
                     <div class="detail-row"><strong>Email:</strong> @selectedUser.Email</div>
-                    <div class="detail-row"><strong>Joined:</strong> @selectedUser.DateJoined.ToString("MMMM dd, yyyy")</div>
-                    <div class="detail-row"><strong>Id:</strong> @selectedUser.Id</div>
+                    <div class="detail-row"><strong>Joined:</strong> @selectedUser.CreatedAt.ToString("MMMM dd, yyyy")</div>
+                    <div class="detail-row"><strong>Id:</strong> @selectedUser.UserId</div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @onclick="CloseUserModal">Close</button>
@@ -89,12 +89,12 @@
 </div>
 
 @code {
-    private List<User>? users;
+    private List<Users>? users;
     private string searchTerm = string.Empty;
     private bool isLoading = true;
 
     private bool showUserModal = false;
-    private User? selectedUser;
+    private Users? selectedUser;
 
     protected override async Task OnInitializedAsync()
     {
@@ -118,12 +118,12 @@
         }
     }
 
-    private IEnumerable<User>? FilteredUsers =>
+    private IEnumerable<Users>? FilteredUsers =>
         string.IsNullOrWhiteSpace(searchTerm)
             ? users
-            : users?.Where(u => (u.Name ?? "").Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || (u.Email ?? "").Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+            : users?.Where(u => (u.Username ?? "").Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || (u.Email ?? "").Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
 
-    private void OpenUserDetails(User u)
+    private void OpenUserDetails(Users u)
     {
         selectedUser = u;
         showUserModal = true;

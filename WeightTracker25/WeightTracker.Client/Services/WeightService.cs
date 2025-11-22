@@ -44,7 +44,7 @@ public class WeightService
                 Date = r.RecordDate,
                 Weight = r.Weight,
                 Notes = null,
-                UserId = r.UserId.ToString()
+                UserId = r.UserId
             }).ToList();
         }
         catch

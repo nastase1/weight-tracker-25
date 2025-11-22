@@ -1,6 +1,7 @@
 @page "/profile"
 @using WeightTracker.Client.Models
 @using WeightTracker.Client.Components
+@using WeightTracker.Domain.Entities
 @inject WeightService WeightService
 @inject AuthService AuthService
 
@@ -12,9 +13,9 @@
                     <span class="avatar-initials">@GetUserInitials()</span>
                 </div>
                 <div class="user-info">
-                    <h1 class="user-name">@(currentUser?.Name ?? "User")</h1>
+                    <h1 class="user-name">@(currentUser?.Username ?? "User")</h1>
                     <p class="user-email">@(currentUser?.Email ?? "")</p>
-                    <p class="user-since">Member since @(currentUser?.DateJoined.ToString("MMMM yyyy") ?? "")</p>
+                    <p class="user-since">Member since @(currentUser?.CreatedAt.ToString("MMMM yyyy") ?? "")</p>
                 </div>
             </div>
         </div>
@@ -393,7 +394,7 @@
 }
 
 @code {
-    private User? currentUser;
+    private Users? currentUser;
     private WeightStats? weightStats;
     private ProfileAnalytics? analytics;
     private List<ChartDataPoint>? chartData;
@@ -440,7 +441,7 @@
     {
         if (currentUser == null) return "U";
         
-        var firstInitial = !string.IsNullOrEmpty(currentUser.Name) ? currentUser.Name[0].ToString().ToUpper() : "";
+        var firstInitial = !string.IsNullOrEmpty(currentUser.Username) ? currentUser.Username[0].ToString().ToUpper() : "";
         
         
         return firstInitial;
@@ -534,7 +535,7 @@
         try
         {
             isSaving = true;
-            newWeightEntry.UserId = currentUser?.Id ?? "";
+            newWeightEntry.UserId = currentUser?.UserId ?? Guid.Empty;
             
             await WeightService.SaveWeightEntryAsync(newWeightEntry);
             await LoadProfileData();

@@ -50,6 +50,7 @@ namespace WeightTracker.Application.Services
             var newUser = new Users
             {
                 UserId = Guid.NewGuid(),
+                IsAdmin = false,
                 Username = request.Username,
                 Email = request.Email,
                 PasswordHash = HashPassword(request.Password),

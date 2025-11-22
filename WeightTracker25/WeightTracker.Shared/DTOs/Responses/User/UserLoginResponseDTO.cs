@@ -1,3 +1,5 @@
+using WeightTracker.Domain.Entities;
+
 namespace WeightTracker.Shared.DTOs.Responses.User
 {
     public class UserLoginResponseDTO
@@ -5,5 +7,6 @@ namespace WeightTracker.Shared.DTOs.Responses.User
         public bool Success { get; set; }
         public string? Token { get; set; }
         public string? Message { get; set; }
+        public Users? User { get; set; }
     }
 }

@@ -1,10 +1,10 @@
 using Blazored.LocalStorage;
-using WeightTracker.Client.Models;
 using System.Net.Http.Json;
 using WeightTracker.Shared.DTOs.Responses.User;
 using WeightTracker.Shared.DTOs.Requests.User;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using WeightTracker.Domain.Entities;
 
 namespace WeightTracker.Client.Services;
 
@@ -39,9 +39,9 @@ public class AuthService
         return !string.IsNullOrEmpty(token);
     }
 
-    public async Task<User?> GetCurrentUserAsync()
+    public async Task<Users?> GetCurrentUserAsync()
     {
-        return await _localStorage.GetItemAsync<User>(USER_KEY);
+        return await _localStorage.GetItemAsync<Users>(USER_KEY);
     }
 
     public async Task<string?> GetTokenAsync()
@@ -63,7 +63,7 @@ public class AuthService
         }
     }
 
-    public async Task<UserLoginResponseDTO> LoginAsync(LoginRequest request)
+    public async Task<UserLoginResponseDTO> LoginAsync(UserLoginRequestDTO request)
     {
         try
         {
@@ -93,12 +93,13 @@ public class AuthService
                             var dbUser = await userResponse.Content.ReadFromJsonAsync<WeightTracker.Domain.Entities.Users>();
                             if (dbUser != null)
                             {
-                                var user = new User
+                                var user = new Users
                                 {
-                                    Id = dbUser.UserId.ToString(),
+                                    UserId = dbUser.UserId,
+                                    IsAdmin = dbUser.IsAdmin,
                                     Email = dbUser.Email,
-                                    Name = dbUser.Username,
-                                    DateJoined = dbUser.CreatedAt
+                                    Username = dbUser.Username,
+                                    CreatedAt = dbUser.CreatedAt
                                 };
                                 await _localStorage.SetItemAsync(USER_KEY, user);
                             }
@@ -107,12 +108,12 @@ public class AuthService
                     catch
                     {
                         var userId = await GetUserIdAsync();
-                        var user = new User
+                        var user = new Users
                         {
-                            Id = userId?.ToString() ?? Guid.NewGuid().ToString(),
+                            UserId = userId ?? Guid.NewGuid(),
                             Email = request.Email,
-                            Name = request.Email.Split('@')[0],
-                            DateJoined = DateTime.Now
+                            Username = request.Email.Split('@')[0],
+                            CreatedAt = DateTime.Now
                         };
                         await _localStorage.SetItemAsync(USER_KEY, user);
                     }
@@ -158,13 +159,13 @@ public class AuthService
         }
     }
 
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+    public async Task<UserRegisterResponseDTO> RegisterAsync(UserRegisterRequestDTO request)
     {
         try
         {
             if (request.Password != request.ConfirmPassword)
             {
-                return new AuthResponse
+                return new UserRegisterResponseDTO
                 {
                     Success = false,
                     Message = "Passwords do not match"
@@ -174,8 +175,9 @@ public class AuthService
             var registerDto = new UserRegisterRequestDTO
             {
                 Email = request.Email,
-                Username = request.Name,
-                Password = request.Password
+                Username = request.Username,
+                Password = request.Password,
+                ConfirmPassword = request.ConfirmPassword
             };
 
             var response = await _httpClient.PostAsJsonAsync("api/Authentification/register", registerDto);
@@ -186,7 +188,7 @@ public class AuthService
                 
                 if (apiResponse != null && apiResponse.Success)
                 {
-                    var loginResult = await LoginAsync(new LoginRequest
+                    var loginResult = await LoginAsync(new UserLoginRequestDTO
                     {
                         Email = request.Email,
                         Password = request.Password,
@@ -197,7 +199,7 @@ public class AuthService
                     {
                         var user = await GetCurrentUserAsync();
                         
-                        return new AuthResponse
+                        return new UserRegisterResponseDTO
                         {
                             Success = true,
                             Message = "Registration successful",
@@ -205,20 +207,15 @@ public class AuthService
                             User = user
                         };
                     }
-                    else
+                    return new UserRegisterResponseDTO
                     {
-                        return new AuthResponse
-                        {
-                            Success = true,
-                            Message = "Registration successful. Please login.",
-                            Token = null,
-                            User = null
-                        };
-                    }
+                        Success = true,
+                        Message = "Registration successful. Please login."
+                    };
                 }
                 else
                 {
-                    return new AuthResponse
+                    return new UserRegisterResponseDTO
                     {
                         Success = false,
                         Message = apiResponse?.Message ?? "Registration failed"
@@ -228,7 +225,7 @@ public class AuthService
             else
             {
                 var apiResponse = await response.Content.ReadFromJsonAsync<UserRegisterResponseDTO>();
-                return new AuthResponse
+                return new UserRegisterResponseDTO
                 {
                     Success = false,
                     Message = apiResponse?.Message ?? $"Registration failed: {response.StatusCode}"
@@ -237,7 +234,7 @@ public class AuthService
         }
         catch (Exception ex)
         {
-            return new AuthResponse
+            return new UserRegisterResponseDTO
             {
                 Success = false,
                 Message = ex.Message
