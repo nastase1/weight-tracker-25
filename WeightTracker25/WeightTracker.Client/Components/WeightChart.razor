@@ -4,7 +4,6 @@
     @if (Data?.Any() == true)
     {
         <div class="chart-header">
-            <h4>Weight Trend</h4>
             <div class="time-period-filters">
                 <button class="filter-btn @(selectedPeriod == TimePeriod.Week ? "active" : "")" 
                         @onclick="() => SelectTimePeriod(TimePeriod.Week)">1W</button>
@@ -70,21 +69,31 @@
                                   stroke-linecap="round"
                                   stroke-linejoin="round"/>
                             
+                            <!-- Smoothed trend line -->
+                            <path d="@GetSmoothedLinePath()" 
+                                  fill="none" 
+                                  stroke="#e054e0" 
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-dasharray="8,4"
+                                  opacity="0.8"/>
+                            
                             <!-- Data points -->
                             @foreach (var point in chartPoints)
                             {
-                                <g class="data-point" @onmouseenter="() => ShowTooltip(point)" @onmouseleave="HideTooltip">
-                                    <circle cx="@point.X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@point.Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="4" fill="#ffffff" stroke="#f1a363" stroke-width="2"/>
-                                    <circle cx="@point.X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@point.Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="2" fill="#f1a363"/>
+                                <g class="data-point" @onclick="() => ShowEditPopup(point)" @onmouseenter="() => ShowTooltip(point)" @onmouseleave="HideTooltip">
+                                    <circle cx="@point.X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@point.Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="4" fill="#ffffff" stroke="#f1a363" stroke-width="2" style="cursor: pointer;"/>
+                                    <circle cx="@point.X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@point.Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="2" fill="#f1a363" style="cursor: pointer;"/>
                                 </g>
                             }
                         }
                         else if (chartPoints.Count == 1)
                         {
                             <!-- Single data point -->
-                            <g class="data-point" @onmouseenter="() => ShowTooltip(chartPoints[0])" @onmouseleave="HideTooltip">
-                                <circle cx="@chartPoints[0].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@chartPoints[0].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="6" fill="#ffffff" stroke="#f1a363" stroke-width="3"/>
-                                <circle cx="@chartPoints[0].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@chartPoints[0].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="3" fill="#f1a363"/>
+                            <g class="data-point" @onclick="() => ShowEditPopup(chartPoints[0])" @onmouseenter="() => ShowTooltip(chartPoints[0])" @onmouseleave="HideTooltip">
+                                <circle cx="@chartPoints[0].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@chartPoints[0].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="6" fill="#ffffff" stroke="#f1a363" stroke-width="3" style="cursor: pointer;"/>
+                                <circle cx="@chartPoints[0].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@chartPoints[0].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="3" fill="#f1a363" style="cursor: pointer;"/>
                             </g>
                         }
                     </svg>
@@ -114,6 +123,56 @@
             </div>
         }
         
+        <!-- Edit Popup -->
+        @if (showEditPopup && selectedPoint != null)
+        {
+            <div class="popup-overlay" @onclick="CloseEditPopup">
+                <div class="edit-popup" @onclick:stopPropagation="true">
+                    <div class="popup-header">
+                        <h3>Edit Weight Entry</h3>
+                        <button class="close-btn" @onclick="CloseEditPopup">&times;</button>
+                    </div>
+                    <div class="popup-content">
+                        <div class="form-group">
+                            <label>Date:</label>
+                            <input type="date" @bind="editDate" @bind:format="yyyy-MM-dd" />
+                        </div>
+                        <div class="form-group">
+                            <label>Weight (kg):</label>
+                            <input type="number" @bind="editWeight" step="0.1" min="1" max="1000" />
+                        </div>
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="error-message">@errorMessage</div>
+                        }
+                    </div>
+                    <div class="popup-actions">
+                        <button class="btn btn-danger" @onclick="DeleteRecord" disabled="@isProcessing">
+                            @if (isProcessing && currentAction == "delete")
+                            {
+                                <span>Deleting...</span>
+                            }
+                            else
+                            {
+                                <span>Delete</span>
+                            }
+                        </button>
+                        <button class="btn btn-primary" @onclick="UpdateRecord" disabled="@isProcessing">
+                            @if (isProcessing && currentAction == "update")
+                            {
+                                <span>Updating...</span>
+                            }
+                            else
+                            {
+                                <span>Update</span>
+                            }
+                        </button>
+                        <button class="btn btn-secondary" @onclick="CloseEditPopup" disabled="@isProcessing">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        }
+        
         <div class="chart-footer">
             <span class="chart-range">@minWeight.ToString("F1") kg - @maxWeight.ToString("F1") kg</span>
             <span class="chart-info">@filteredData.Count entries • @GetPeriodText()</span>
@@ -130,6 +189,8 @@
 
 @code {
     [Parameter] public List<ChartDataPoint>? Data { get; set; }
+    [Parameter] public EventCallback OnDataChanged { get; set; }
+    [Inject] private WeightService WeightService { get; set; } = default!;
 
     private List<ChartPoint> chartPoints = new();
     private List<ChartDataPoint> filteredData = new();
@@ -142,6 +203,15 @@
     private ChartPoint? tooltipData = null;
     private double tooltipX = 0;
     private double tooltipY = 0;
+    
+    // Edit popup state
+    private bool showEditPopup = false;
+    private ChartPoint? selectedPoint = null;
+    private DateTime editDate = DateTime.Today;
+    private decimal editWeight = 0;
+    private bool isProcessing = false;
+    private string currentAction = "";
+    private string errorMessage = "";
 
     public enum TimePeriod
     {
@@ -158,6 +228,7 @@
         public double Y { get; set; }
         public DateTime Date { get; set; }
         public decimal Weight { get; set; }
+        public Guid? RecordId { get; set; }
     }
 
     public class DateLabel
@@ -230,15 +301,15 @@
         {
             // For small ranges, add fixed padding
             var padding = Math.Max(1m, range * 0.2m);
-            minWeight = actualMinWeight - padding;
-            maxWeight = actualMaxWeight + padding;
+            minWeight = actualMinWeight - 5;
+            maxWeight = actualMaxWeight + 5;
         }
         else
         {
             // For larger ranges, add percentage-based padding
             var padding = range * 0.1m;
-            minWeight = actualMinWeight - padding;
-            maxWeight = actualMaxWeight + padding;
+            minWeight = actualMinWeight - 5;
+            maxWeight = actualMaxWeight + 5;
         }
         
         // Ensure minimum weight doesn't go below 0
@@ -271,7 +342,8 @@
                 X = x, 
                 Y = y, 
                 Date = filteredData[i].Date,
-                Weight = filteredData[i].Weight
+                Weight = filteredData[i].Weight,
+                RecordId = filteredData[i].RecordId
             });
         }
     }
@@ -337,6 +409,60 @@
         
         return string.Join(" ", pathData);
     }
+    
+    private string GetSmoothedLinePath()
+    {
+        if (chartPoints.Count < 3) return GetLinePath(); // Use regular line for too few points
+        
+        var smoothedPoints = GetSmoothedPoints();
+        if (smoothedPoints.Count == 0) return "";
+        
+        var pathData = new List<string>();
+        pathData.Add($"M {smoothedPoints[0].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)} {smoothedPoints[0].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)}");
+        
+        for (int i = 1; i < smoothedPoints.Count; i++)
+        {
+            pathData.Add($"L {smoothedPoints[i].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)} {smoothedPoints[i].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)}");
+        }
+        
+        return string.Join(" ", pathData);
+    }
+    
+    private List<ChartPoint> GetSmoothedPoints()
+    {
+        if (chartPoints.Count < 3) return chartPoints.ToList();
+        
+        var smoothedPoints = new List<ChartPoint>();
+        var windowSize = Math.Min(5, Math.Max(3, chartPoints.Count / 4)); // Adaptive window size
+        
+        for (int i = 0; i < chartPoints.Count; i++)
+        {
+            var start = Math.Max(0, i - windowSize / 2);
+            var end = Math.Min(chartPoints.Count - 1, i + windowSize / 2);
+            
+            var avgY = 0.0;
+            var count = 0;
+            
+            for (int j = start; j <= end; j++)
+            {
+                avgY += chartPoints[j].Y;
+                count++;
+            }
+            
+            avgY /= count;
+            
+            smoothedPoints.Add(new ChartPoint
+            {
+                X = chartPoints[i].X,
+                Y = avgY,
+                Date = chartPoints[i].Date,
+                Weight = chartPoints[i].Weight,
+                RecordId = chartPoints[i].RecordId
+            });
+        }
+        
+        return smoothedPoints;
+    }
 
     private List<DateLabel> GetDateLabels()
     {
@@ -384,5 +510,73 @@
         showTooltip = false;
         tooltipData = null;
         StateHasChanged();
+    }
+    
+    private void ShowEditPopup(ChartPoint point)
+    {
+        selectedPoint = point;
+        editDate = point.Date;
+        editWeight = point.Weight;
+        showEditPopup = true;
+        errorMessage = "";
+        StateHasChanged();
+    }
+    
+    private void CloseEditPopup()
+    {
+        showEditPopup = false;
+        selectedPoint = null;
+        errorMessage = "";
+        isProcessing = false;
+        currentAction = "";
+        StateHasChanged();
+    }
+    
+    private async Task UpdateRecord()
+    {
+        if (selectedPoint?.RecordId == null) return;
+        
+        try
+        {
+            isProcessing = true;
+            currentAction = "update";
+            errorMessage = "";
+            StateHasChanged();
+            
+            await WeightService.UpdateWeightRecordAsync(selectedPoint.RecordId.Value, editWeight, editDate);
+            await OnDataChanged.InvokeAsync();
+            CloseEditPopup();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error updating record: {ex.Message}";
+            isProcessing = false;
+            currentAction = "";
+            StateHasChanged();
+        }
+    }
+    
+    private async Task DeleteRecord()
+    {
+        if (selectedPoint?.RecordId == null) return;
+        
+        try
+        {
+            isProcessing = true;
+            currentAction = "delete";
+            errorMessage = "";
+            StateHasChanged();
+            
+            await WeightService.DeleteWeightRecordAsync(selectedPoint.RecordId.Value);
+            await OnDataChanged.InvokeAsync();
+            CloseEditPopup();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deleting record: {ex.Message}";
+            isProcessing = false;
+            currentAction = "";
+            StateHasChanged();
+        }
     }
 }

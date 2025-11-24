@@ -34,4 +34,5 @@ public class ChartDataPoint
 {
     public DateTime Date { get; set; }
     public decimal Weight { get; set; }
+    public Guid? RecordId { get; set; }
 }

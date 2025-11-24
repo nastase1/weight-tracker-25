@@ -88,7 +88,7 @@
                     <p class="card-subtitle">Track your weight changes over time</p>
                 </div>
                 <div class="card-body">
-                    <WeightChart Data="chartData" />
+                    <WeightChart Data="chartData" OnDataChanged="LoadAnalytics" />
                 </div>
             </div>
 
@@ -279,9 +279,14 @@
                 .OrderBy(e => e.Date)
                 .ToList();
             
-            chartData = weightEntries
-                .Select(e => new ChartDataPoint { Date = e.Date, Weight = e.Weight })
-                .ToList();
+            chartData = await WeightService.GetChartDataAsync();
+            
+            // Filter chartData based on selected period if needed
+            if (selectedPeriod > 0)
+            {
+                var chartCutoffDate = DateTime.Today.AddDays(-selectedPeriod);
+                chartData = chartData.Where(c => c.Date >= chartCutoffDate).ToList();
+            }
             
             analytics = CalculateAnalytics(weightEntries);
         }
