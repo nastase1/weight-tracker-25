@@ -82,7 +82,7 @@
                             <!-- Data points -->
                             @foreach (var point in chartPoints)
                             {
-                                <g class="data-point" @onclick="() => ShowEditPopup(point)" @onmouseenter="() => ShowTooltip(point)" @onmouseleave="HideTooltip">
+                                <g class="data-point" @onclick="() => ShowEditPopup(point)" @onmouseenter="(e) => ShowTooltip(point, e)" @onmouseleave="HideTooltip" @onmousemove="(e) => ShowTooltip(point, e)">
                                     <circle cx="@point.X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@point.Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="4" fill="#ffffff" stroke="#f1a363" stroke-width="2" style="cursor: pointer;"/>
                                     <circle cx="@point.X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@point.Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="2" fill="#f1a363" style="cursor: pointer;"/>
                                 </g>
@@ -91,7 +91,7 @@
                         else if (chartPoints.Count == 1)
                         {
                             <!-- Single data point -->
-                            <g class="data-point" @onclick="() => ShowEditPopup(chartPoints[0])" @onmouseenter="() => ShowTooltip(chartPoints[0])" @onmouseleave="HideTooltip">
+                            <g class="data-point" @onclick="() => ShowEditPopup(chartPoints[0])" @onmouseenter="(e) => ShowTooltip(chartPoints[0], e)" @onmouseleave="HideTooltip" @onmousemove="(e) => ShowTooltip(chartPoints[0], e)">
                                 <circle cx="@chartPoints[0].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@chartPoints[0].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="6" fill="#ffffff" stroke="#f1a363" stroke-width="3" style="cursor: pointer;"/>
                                 <circle cx="@chartPoints[0].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@chartPoints[0].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="3" fill="#f1a363" style="cursor: pointer;"/>
                             </g>
@@ -115,7 +115,7 @@
         <!-- Tooltip -->
         @if (showTooltip && tooltipData != null)
         {
-            <div class="chart-tooltip" style="position: absolute; left: @(tooltipX)px; top: @(tooltipY)px; z-index: 1000;">
+            <div class="chart-tooltip" style="position: fixed; left: @(tooltipX)px; top: @(tooltipY)px; z-index: 1000;">
                 <div class="tooltip-content">
                     <div class="tooltip-date">@tooltipData.Date.ToString("MMM dd, yyyy")</div>
                     <div class="tooltip-weight">@tooltipData.Weight.ToString("F1") kg</div>
@@ -496,12 +496,12 @@
         return labels;
     }
     
-    private void ShowTooltip(ChartPoint point)
+    private void ShowTooltip(ChartPoint point, MouseEventArgs e)
     {
         showTooltip = true;
         tooltipData = point;
-        tooltipX = point.X;
-        tooltipY = point.Y;
+        tooltipX = e.ClientX - 350;
+        tooltipY = e.ClientY - 200; 
         StateHasChanged();
     }
     
