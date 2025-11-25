@@ -38,6 +38,34 @@ namespace WeightTracker.API.Controllers
             }
             return Ok(user);
         }
+
+        [HttpPost("users/{id}/deactivate")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult> DeactivateUser(Guid id)
+        {
+            var result = await _adminService.DeactivateUserAsync(id);
+            if (!result)
+            {
+                return NotFound(new { message = $"User with ID {id} not found" });
+            }
+            return Ok(new { message = "User deactivated successfully" });
+        }
+
+        [HttpPost("users/{id}/activate")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult> ActivateUser(Guid id)
+        {
+            var result = await _adminService.ActivateUserAsync(id);
+            if (!result)
+            {
+                return NotFound(new { message = $"User with ID {id} not found" });
+            }
+            return Ok(new { message = "User activated successfully" });
+        }
     }
 }
 
