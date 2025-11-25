@@ -30,6 +30,7 @@
 
 .search {
     padding: 0.5rem 0.75rem;
+    min-width: 300px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-light);
     background: var(--bg-secondary);
@@ -39,6 +40,12 @@
     display: flex;
     gap: 1rem;
     margin-bottom: 1rem;
+}
+
+.stat-card{
+    width: 100%;
+    align-items: center;
+    padding: 1rem;
 }
 
 .user-list {
