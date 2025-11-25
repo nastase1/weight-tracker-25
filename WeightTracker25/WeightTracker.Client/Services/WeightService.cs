@@ -164,10 +164,82 @@ public class WeightService
 
     public async Task<List<ChartDataPoint>> GetChartDataAsync()
     {
-        var entries = await GetWeightEntriesAsync();
-        return entries
-            .OrderBy(e => e.Date)
-            .Select(e => new ChartDataPoint { Date = e.Date, Weight = e.Weight })
-            .ToList();
+        try
+        {
+            var userId = await _authService.GetUserIdAsync();
+            if (!userId.HasValue)
+            {
+                return new List<ChartDataPoint>();
+            }
+
+            var response = await _httpClient.GetAsync($"api/Records/user/{userId.Value}");
+            if (!response.IsSuccessStatusCode)
+            {
+                return new List<ChartDataPoint>();
+            }
+
+            var records = await response.Content.ReadFromJsonAsync<List<Records>>();
+            if (records == null)
+            {
+                return new List<ChartDataPoint>();
+            }
+
+            return records
+                .OrderBy(r => r.RecordDate)
+                .Select(r => new ChartDataPoint 
+                { 
+                    Date = r.RecordDate, 
+                    Weight = r.Weight,
+                    RecordId = r.RecordId
+                })
+                .ToList();
+        }
+        catch
+        {
+            return new List<ChartDataPoint>();
+        }
+    }
+
+    public async Task UpdateWeightRecordAsync(Guid recordId, decimal newWeight, DateTime date)
+    {
+        try
+        {
+            var recordResponse = await _httpClient.GetAsync($"api/Records/{recordId}");
+            if (recordResponse.IsSuccessStatusCode)
+            {
+                var record = await recordResponse.Content.ReadFromJsonAsync<Records>();
+                if (record != null)
+                {
+                    var updateRequest = new UpdateRecordRequestDTO
+                    {
+                        RecordDate = date,
+                        Weight = newWeight,
+                        Height = record.Height
+                    };
+
+                    var updateResponse = await _httpClient.PutAsJsonAsync($"api/Records/{recordId}", updateRequest);
+                    updateResponse.EnsureSuccessStatusCode();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating weight record: {ex.Message}");
+            throw;
+        }
+    }
+
+    public async Task DeleteWeightRecordAsync(Guid recordId)
+    {
+        try
+        {
+            var deleteResponse = await _httpClient.DeleteAsync($"api/Records/{recordId}");
+            deleteResponse.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting weight record: {ex.Message}");
+            throw;
+        }
     }
 }

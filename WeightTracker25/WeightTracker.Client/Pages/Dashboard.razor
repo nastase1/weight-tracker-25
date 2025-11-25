@@ -80,7 +80,7 @@
             <div class="card-body">
                 @if (chartData?.Any() == true)
                 {
-                    <WeightChart Data="chartData" OnDataPointClick="HandleChartPointClick" />
+                    <WeightChart Data="chartData" OnDataChanged="LoadData" />
                 }
                 else
                 {
