@@ -18,6 +18,7 @@ namespace WeightTracker.Infrastructure.Context
 
         public DbSet<Users> Users { get; set; }
         public DbSet<Records> Records { get; set; }
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -39,6 +40,19 @@ namespace WeightTracker.Infrastructure.Context
                 entity.Property(e => e.Weight).HasColumnType("decimal(5,2)");
                 entity.Property(e => e.Height).HasColumnType("decimal(5,2)");
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<PasswordResetToken>(entity =>
+            {
+                entity.HasKey(e => e.TokenId);
+                entity.Property(e => e.ResetCode).IsRequired().HasMaxLength(6);
+                entity.Property(e => e.ExpiryDate).IsRequired();
+                entity.Property(e => e.IsUsed).HasDefaultValue(false);
 
                 entity.HasOne(e => e.User)
                     .WithMany()

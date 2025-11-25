@@ -30,12 +30,12 @@ namespace WeightTracker.API.Controllers
         public async Task<IActionResult> Register([FromBody] UserRegisterRequestDTO request)
         {
             var result = await _authentificationService.RegisterUserAsync(request);
-            
+
             if (!result.Success)
             {
                 return BadRequest(result);
             }
-            
+
             return Ok(result);
         }
 
@@ -44,13 +44,46 @@ namespace WeightTracker.API.Controllers
         public async Task<IActionResult> Login([FromBody] UserLoginRequestDTO request)
         {
             var result = await _authentificationService.LoginUserAsync(request);
-            
+
             if (!result.Success)
             {
                 return Unauthorized(result);
             }
 
             return Ok(result);
-        }   
+        }
+
+        [AllowAnonymous]
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDTO request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
+            }
+
+            var result = await _authentificationService.ForgotPasswordAsync(request);
+
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+
+        [AllowAnonymous]
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDTO request)
+        {
+            var result = await _authentificationService.ResetPasswordAsync(request);
+
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
     }
 }

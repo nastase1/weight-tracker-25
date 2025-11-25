@@ -8,7 +8,8 @@ namespace WeightTracker.Application.IServices
     {
         Task<UserRegisterResponseDTO> RegisterUserAsync(UserRegisterRequestDTO request);
         Task<UserLoginResponseDTO> LoginUserAsync(UserLoginRequestDTO request);
-        //string GenerateJwtToken(Users user, bool rememberMe);
+        Task<ForgotPasswordResponseDTO> ForgotPasswordAsync(ForgotPasswordRequestDTO request);
+        Task<ResetPasswordResponseDTO> ResetPasswordAsync(ResetPasswordRequestDTO request);
         string HashPassword(string password);
         bool VerifyPassword(string password, string passwordHash);
     }

@@ -16,16 +16,19 @@ namespace WeightTracker.Application.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
+        private readonly IPasswordResetTokenRepository _passwordResetTokenRepository;
 
-        public AuthentificationService(IUserRepository userRepository, IConfiguration configuration)
+        public AuthentificationService(IUserRepository userRepository, IConfiguration configuration, IEmailService emailService, IPasswordResetTokenRepository passwordResetTokenRepository)
         {
             _userRepository = userRepository;
             _configuration = configuration;
+            _emailService = emailService;
+            _passwordResetTokenRepository = passwordResetTokenRepository;
         }
 
         public async Task<UserRegisterResponseDTO> RegisterUserAsync(UserRegisterRequestDTO request)
         {
-            // Check if email already exists
             var userByEmail = await _userRepository.GetByEmailAsync(request.Email);
             if (userByEmail != null)
             {
@@ -36,7 +39,6 @@ namespace WeightTracker.Application.Services
                 };
             }
 
-            // Check if username already exists
             var userByUsername = await _userRepository.GetByUsernameAsync(request.Username);
             if (userByUsername != null)
             {
@@ -58,6 +60,14 @@ namespace WeightTracker.Application.Services
             };
 
             await _userRepository.AddAsync(newUser);
+            try
+            {
+                await _emailService.SendWelcomeEmailAsync(newUser.Email, newUser.Username);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send welcome email: {ex.Message}");
+            }
             return new UserRegisterResponseDTO
             {
                 Success = true,
@@ -68,7 +78,7 @@ namespace WeightTracker.Application.Services
         public async Task<UserLoginResponseDTO> LoginUserAsync(UserLoginRequestDTO request)
         {
             var user = await _userRepository.GetByEmailAsync(request.Email);
-            
+
             if (user == null)
             {
                 return new UserLoginResponseDTO
@@ -104,10 +114,9 @@ namespace WeightTracker.Application.Services
             var jwtKey = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is not configured.");
             var jwtIssuer = _configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT Issuer is not configured.");
             var jwtAudience = _configuration["Jwt:Audience"] ?? throw new InvalidOperationException("JWT Audience is not configured.");
-            
-            // If Remember Me is checked, token expires in 30 days, otherwise 24 hours
-            var expiryTime = rememberMe 
-                ? DateTime.UtcNow.AddDays(30) 
+
+            var expiryTime = rememberMe
+                ? DateTime.UtcNow.AddDays(30)
                 : DateTime.UtcNow.AddHours(24);
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
@@ -141,5 +150,89 @@ namespace WeightTracker.Application.Services
         {
             return BCrypt.Net.BCrypt.Verify(password, passwordHash);
         }
+
+        public async Task<ForgotPasswordResponseDTO> ForgotPasswordAsync(ForgotPasswordRequestDTO request)
+        {
+            var user = await _userRepository.GetByEmailAsync(request.Email);
+            if (user == null)
+            {
+                return new ForgotPasswordResponseDTO
+                {
+                    Success = true,
+                    Message = "If the email exists, a reset code has been sent."
+                };
+            }
+
+            var random = new Random();
+            var resetCode = random.Next(100000, 999999).ToString();
+
+            var resetToken = new PasswordResetToken
+            {
+                TokenId = Guid.NewGuid(),
+                UserId = user.UserId,
+                ResetCode = resetCode,
+                ExpiryDate = DateTime.UtcNow.AddMinutes(15),
+                IsUsed = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _passwordResetTokenRepository.AddAsync(resetToken);
+
+            try
+            {
+                await _emailService.SendPasswordResetCodeAsync(user.Email, user.Username, resetCode);
+            }
+            catch (Exception)
+            {
+                return new ForgotPasswordResponseDTO
+                {
+                    Success = false,
+                    Message = "Failed to send reset code email. Please try again."
+                };
+            }
+
+            return new ForgotPasswordResponseDTO
+            {
+                Success = true,
+                Message = "If the email exists, a reset code has been sent."
+            };
+        }
+
+        public async Task<ResetPasswordResponseDTO> ResetPasswordAsync(ResetPasswordRequestDTO request)
+        {
+            var user = await _userRepository.GetByEmailAsync(request.Email);
+            if (user == null)
+            {
+                return new ResetPasswordResponseDTO
+                {
+                    Success = false,
+                    Message = "Invalid email or reset code."
+                };
+            }
+
+            var resetToken = await _passwordResetTokenRepository.GetValidTokenAsync(user.UserId, request.ResetCode);
+
+            if (resetToken == null)
+            {
+                return new ResetPasswordResponseDTO
+                {
+                    Success = false,
+                    Message = "Invalid or expired reset code."
+                };
+            }
+
+            user.PasswordHash = HashPassword(request.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userRepository.UpdateAsync(user);
+
+            resetToken.IsUsed = true;
+            await _passwordResetTokenRepository.UpdateAsync(resetToken);
+
+            return new ResetPasswordResponseDTO
+            {
+                Success = true,
+                Message = "Password reset successfully. You can now login with your new password."
+            };
+        }
     }
-} 
+}

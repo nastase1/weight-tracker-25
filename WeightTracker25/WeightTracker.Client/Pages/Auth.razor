@@ -15,7 +15,7 @@
         <div class="auth-bg-grid"></div>
         <div class="auth-bg-gradient"></div>
     </div> *@
-    
+
     <div class="auth-content">
         <div class="auth-card">
             <div class="auth-header">
@@ -33,156 +33,177 @@
                 </button>
             </div>
 
-        @if (isLogin)
-        {
-            <div class="auth-form">
-                <form @onsubmit="HandleLogin" @onsubmit:preventDefault="true">
-                    <div class="form-group">
-                        <label class="form-label">Email Address</label>
-                        <div class="input-wrapper">
-                            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                            </svg>
-                            <input type="email" @bind="loginRequest.Email" class="form-control" placeholder="Enter your email address" />
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Password</label>
-                        <div class="input-wrapper">
-                            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-                            </svg>
-                            <input type="password" @bind="loginRequest.Password" class="form-control" placeholder="Enter your password" />
-                        </div>
-                    </div>
-
-                    <div class="form-extras">
-                        <div class="form-check">
-                            <input type="checkbox" @bind="loginRequest.RememberMe" class="form-check-input" id="rememberMe" />
-                            <label class="form-check-label" for="rememberMe">
-                                Remember me for 30 days
-                            </label>
-                        </div>
-                        <a href="/auth" class="forgot-password">Forgot password?</a>
-                    </div>
-
-                    @if (!string.IsNullOrEmpty(errorMessage))
-                    {
-                        <div class="alert alert-danger">
-                            <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                            </svg>
-                            @errorMessage
-                        </div>
-                    }
-
-                    <button type="submit" class="btn btn-primary btn-lg w-full" disabled="@isLoading">
-                        @if (isLoading)
-                        {
-                            <div class="btn-loading">
-                                <div class="spinner"></div>
-                                <span>Signing you in...</span>
-                            </div>
-                        }
-                        else
-                        {
-                            <span>Sign In</span>
-                            <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
-                            </svg>
-                        }
-                    </button>
-                </form>
-            </div>
-        }
-        else
-        {
-            <div class="auth-form">
-                <form @onsubmit="HandleRegister" @onsubmit:preventDefault="true">
-                    <div class="form-group">
-                        <label class="form-label">Name</label>
-                        <div class="input-wrapper">
-                            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                            </svg>
-                            <input type="text" @bind="registerRequest.Username" class="form-control" placeholder="Name" />
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Email Address</label>
-                        <div class="input-wrapper">
-                            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                            </svg>
-                            <input type="email" @bind="registerRequest.Email" class="form-control" placeholder="Enter your email address" />
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Password</label>
-                        <div class="input-wrapper">
-                            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-                            </svg>
-                            <input type="password" @bind="registerRequest.Password" class="form-control" placeholder="Create a strong password" />
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Confirm Password</label>
-                        <div class="input-wrapper">
-                            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                            </svg>
-                            <input type="password" @bind="registerRequest.ConfirmPassword" class="form-control" placeholder="Confirm your password" />
-                        </div>
-                    </div>
-
-                    @if (!string.IsNullOrEmpty(errorMessage))
-                    {
-                        <div class="alert alert-danger">
-                            <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                            </svg>
-                            @errorMessage
-                        </div>
-                    }
-
-                    <button type="submit" class="btn btn-primary btn-lg w-full" disabled="@isLoading">
-                        @if (isLoading)
-                        {
-                            <div class="btn-loading">
-                                <div class="spinner"></div>
-                                <span>Creating your account...</span>
-                            </div>
-                        }
-                        else
-                        {
-                            <span>Create Account</span>
-                            <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
-                            </svg>
-                        }
-                    </button>
-                </form>
-            </div>
-        }
-
-        <div class="auth-footer">
             @if (isLogin)
             {
-                
+                <div class="auth-form">
+                    <form @onsubmit="HandleLogin" @onsubmit:preventDefault="true">
+                        <div class="form-group">
+                            <label class="form-label">Email Address</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                                </svg>
+                                <input type="email" @bind="loginRequest.Email" class="form-control"
+                                    placeholder="Enter your email address" />
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Password</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                <input type="password" @bind="loginRequest.Password" class="form-control"
+                                    placeholder="Enter your password" />
+                            </div>
+                        </div>
+
+                        <div class="form-extras">
+                            <div class="form-check">
+                                <input type="checkbox" @bind="loginRequest.RememberMe" class="form-check-input"
+                                    id="rememberMe" />
+                                <label class="form-check-label" for="rememberMe">
+                                    Remember me for 30 days
+                                </label>
+                            </div>
+                            <a href="/forgot-password" class="forgot-password">Forgot password?</a>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger">
+                                <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                @errorMessage
+                            </div>
+                        }
+
+                        <button type="submit" class="btn btn-primary btn-lg w-full" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <div class="btn-loading">
+                                    <div class="spinner"></div>
+                                    <span>Signing you in...</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <span>Sign In</span>
+                                <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            }
+                        </button>
+                    </form>
+                </div>
             }
             else
             {
-                
+                <div class="auth-form">
+                    <form @onsubmit="HandleRegister" @onsubmit:preventDefault="true">
+                        <div class="form-group">
+                            <label class="form-label">Name</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                <input type="text" @bind="registerRequest.Username" class="form-control"
+                                    placeholder="Name" />
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Email Address</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                                </svg>
+                                <input type="email" @bind="registerRequest.Email" class="form-control"
+                                    placeholder="Enter your email address" />
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Password</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                <input type="password" @bind="registerRequest.Password" class="form-control"
+                                    placeholder="Create a strong password" />
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Confirm Password</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                <input type="password" @bind="registerRequest.ConfirmPassword" class="form-control"
+                                    placeholder="Confirm your password" />
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger">
+                                <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                @errorMessage
+                            </div>
+                        }
+
+                        <button type="submit" class="btn btn-primary btn-lg w-full" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <div class="btn-loading">
+                                    <div class="spinner"></div>
+                                    <span>Creating your account...</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <span>Create Account</span>
+                                <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path
+                                        d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
+                                </svg>
+                            }
+                        </button>
+                    </form>
+                </div>
             }
+
+            <div class="auth-footer">
+                @if (isLogin)
+                {
+
+                }
+                else
+                {
+
+                }
+            </div>
         </div>
-    </div>
     </div>
 </div>
 
@@ -207,7 +228,7 @@
     {
         isLogin = login;
         errorMessage = string.Empty;
-        
+
         // Reset forms
         loginRequest = new UserLoginRequestDTO();
         registerRequest = new UserRegisterRequestDTO();
@@ -221,19 +242,19 @@
             errorMessage = string.Empty;
 
             UserLoginResponseDTO? result = await AuthService.LoginAsync(loginRequest);
-            
+
             if (result.Success)
             {
                 Users user = await AuthService.GetCurrentUserAsync();
 
                 if (user != null)
                 {
-                    if(user.IsAdmin)
+                    if (user.IsAdmin)
                     {
                         Navigation.NavigateTo("/admin");
                         return;
                     }
-                    else 
+                    else
                     {
                         Navigation.NavigateTo("/");
                         return;
@@ -267,7 +288,7 @@
             errorMessage = string.Empty;
 
             UserRegisterResponseDTO? result = await AuthService.RegisterAsync(registerRequest);
-            
+
             if (result.Success)
             {
                 Navigation.NavigateTo("/");

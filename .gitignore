@@ -196,3 +196,4 @@ wwwroot/build/
 
 # Database
 weightTracker.db
+WeightTracker25/WeightTracker.API/appsettings.json
