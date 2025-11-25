@@ -80,7 +80,7 @@
             <div class="card-body">
                 @if (chartData?.Any() == true)
                 {
-                    <WeightChart Data="chartData" />
+                    <WeightChart Data="chartData" OnDataPointClick="HandleChartPointClick" />
                 }
                 else
                 {
@@ -224,7 +224,6 @@
     {
         isEditMode = false;
         newWeightEntry = new WeightEntry { Date = DateTime.Today };
-        ErrorMessage = string.Empty;
         showAddWeightModal = true;
     }
 
@@ -238,8 +237,16 @@
             Notes = entry.Notes,
             UserId = entry.UserId
         };
-        ErrorMessage = string.Empty;
         showAddWeightModal = true;
+    }
+
+    private void HandleChartPointClick(DateTime date)
+    {
+        var entry = recentEntries?.FirstOrDefault(e => e.Date.Date == date.Date);
+        if (entry != null)
+        {
+            ShowEditWeightModal(entry);
+        }
     }
 
     private void CloseAddWeightModal()

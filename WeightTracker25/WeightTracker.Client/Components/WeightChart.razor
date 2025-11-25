@@ -73,7 +73,7 @@
                             <!-- Data points -->
                             @foreach (var point in chartPoints)
                             {
-                                <g class="data-point" @onmouseenter="() => ShowTooltip(point)" @onmouseleave="HideTooltip">
+                                <g class="data-point" @onmouseenter="() => ShowTooltip(point)" @onmouseleave="HideTooltip" @onclick="() => HandleDataPointClick(point)">
                                     <circle cx="@point.X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@point.Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="4" fill="#ffffff" stroke="#f1a363" stroke-width="2"/>
                                     <circle cx="@point.X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@point.Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="2" fill="#f1a363"/>
                                 </g>
@@ -82,7 +82,7 @@
                         else if (chartPoints.Count == 1)
                         {
                             <!-- Single data point -->
-                            <g class="data-point" @onmouseenter="() => ShowTooltip(chartPoints[0])" @onmouseleave="HideTooltip">
+                            <g class="data-point" @onmouseenter="() => ShowTooltip(chartPoints[0])" @onmouseleave="HideTooltip" @onclick="() => HandleDataPointClick(chartPoints[0])">
                                 <circle cx="@chartPoints[0].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@chartPoints[0].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="6" fill="#ffffff" stroke="#f1a363" stroke-width="3"/>
                                 <circle cx="@chartPoints[0].X.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" cy="@chartPoints[0].Y.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)" r="3" fill="#f1a363"/>
                             </g>
@@ -130,6 +130,7 @@
 
 @code {
     [Parameter] public List<ChartDataPoint>? Data { get; set; }
+    [Parameter] public EventCallback<DateTime> OnDataPointClick { get; set; }
 
     private List<ChartPoint> chartPoints = new();
     private List<ChartDataPoint> filteredData = new();
@@ -384,5 +385,13 @@
         showTooltip = false;
         tooltipData = null;
         StateHasChanged();
+    }
+    
+    private async Task HandleDataPointClick(ChartPoint point)
+    {
+        if (OnDataPointClick.HasDelegate)
+        {
+            await OnDataPointClick.InvokeAsync(point.Date);
+        }
     }
 }
