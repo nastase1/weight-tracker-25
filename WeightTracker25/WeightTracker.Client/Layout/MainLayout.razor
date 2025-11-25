@@ -1,4 +1,5 @@
 ﻿@using WeightTracker.Client.Services
+@using WeightTracker.Domain.Entities
 @using Microsoft.AspNetCore.Components
 @inject AuthService AuthService
 @inject NavigationManager Navigation
@@ -27,6 +28,12 @@
                          <a href="/profile" class="nav-link @(IsCurrentPage("/profile") ? "active" : "")">
                             Profile
                         </a>
+                        @if (currentUser?.IsAdmin == true)
+                        {
+                            <a href="/admin" class="nav-link @(IsCurrentPage("/admin") ? "active" : "")">
+                                Admin
+                            </a>
+                        }
                         
                         <div class="nav-divider"></div>
                         
@@ -52,10 +59,17 @@
 
 @code {
     private bool isAuthenticated = false;
+    private Users? currentUser;
 
     protected override async Task OnInitializedAsync()
     {
         isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        
+        if (isAuthenticated)
+        {
+            currentUser = await AuthService.GetCurrentUserAsync();
+        }
+        
         AuthService.AuthenticationStateChanged += OnAuthenticationStateChanged;
         
         if (!isAuthenticated && !Navigation.Uri.Contains("/auth"))
@@ -64,20 +78,22 @@
         }
     }
 
-    private void OnAuthenticationStateChanged(bool authenticated)
+    private async void OnAuthenticationStateChanged(bool authenticated)
     {
         isAuthenticated = authenticated;
         
         if (authenticated)
         {
+            currentUser = await AuthService.GetCurrentUserAsync();
             Navigation.NavigateTo("/");
         }
         else
         {
+            currentUser = null;
             Navigation.NavigateTo("/auth");
         }
         
-        InvokeAsync(StateHasChanged);
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task HandleLogout()
