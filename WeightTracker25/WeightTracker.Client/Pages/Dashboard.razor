@@ -113,7 +113,12 @@
                                     <div class="weight-entry-notes">@entry.Notes</div>
                                 }
                             </div>
-                            <div class="weight-entry-weight">@entry.Weight.ToString("F1") kg</div>
+                            <div class="weight-entry-actions">
+                                <div class="weight-entry-weight">@entry.Weight.ToString("F1") kg</div>
+                                <button class="btn-edit" @onclick="() => ShowEditWeightModal(entry)" title="Edit entry">
+                                    ✏️
+                                </button>
+                            </div>
                         </div>
                     }
                 }
@@ -137,7 +142,7 @@
     <div class="modal-overlay" @onclick="CloseAddWeightModal">
         <div class="modal-content" @onclick:stopPropagation="true">
             <div class="modal-header">
-                <h3>Add Weight Entry</h3>
+                <h3>@(isEditMode ? "Edit Weight Entry" : "Add Weight Entry")</h3>
                 <button class="modal-close" @onclick="CloseAddWeightModal">&times;</button>
             </div>
             
@@ -157,6 +162,10 @@
                         <label class="form-label">Notes (optional)</label>
                         <textarea @bind="newWeightEntry.Notes" class="form-control" rows="3" placeholder="Add any notes about your weight today..."></textarea>
                     </div>
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="error-message mt-2">@ErrorMessage</div>
+                    }
                 </div>
 
                 <div class="modal-footer">
@@ -185,7 +194,9 @@
     private List<WeightEntry>? recentEntries;
     private bool showAddWeightModal = false;
     private bool isSaving = false;
+    private bool isEditMode = false;
     private WeightEntry newWeightEntry = new() { Date = DateTime.Today };
+    private string ErrorMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -211,30 +222,57 @@
 
     private void ShowAddWeightModal()
     {
+        isEditMode = false;
         newWeightEntry = new WeightEntry { Date = DateTime.Today };
+        ErrorMessage = string.Empty;
+        showAddWeightModal = true;
+    }
+
+    private void ShowEditWeightModal(WeightEntry entry)
+    {
+        isEditMode = true;
+        newWeightEntry = new WeightEntry
+        {
+            Date = entry.Date,
+            Weight = entry.Weight,
+            Notes = entry.Notes,
+            UserId = entry.UserId
+        };
+        ErrorMessage = string.Empty;
         showAddWeightModal = true;
     }
 
     private void CloseAddWeightModal()
     {
         showAddWeightModal = false;
+        isEditMode = false;
         newWeightEntry = new() { Date = DateTime.Today };
     }
 
     private async Task SaveWeightEntry()
     {
+        ErrorMessage = string.Empty;
         try
         {
             isSaving = true;
             newWeightEntry.UserId = currentUser?.UserId ?? Guid.Empty;
-            
+
+            if (!isEditMode)
+            {
+                WeightEntry? existingEntry = recentEntries?.FirstOrDefault(e => e.Date.Date == newWeightEntry.Date.Date);
+                if (existingEntry != null)
+                {
+                    ErrorMessage = "An entry for this date already exists. Please edit the existing entry or choose a different date.";
+                    return;
+                }
+            }
+
             await WeightService.SaveWeightEntryAsync(newWeightEntry);
             await LoadData();
             CloseAddWeightModal();
         }
         catch (Exception ex)
         {
-            // Handle error - in production you'd want proper error handling
             Console.WriteLine($"Error saving entry: {ex.Message}");
         }
         finally
