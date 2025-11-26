@@ -48,6 +48,11 @@ namespace WeightTracker.Application.Services
             return await _userRepository.GetAllAsync();
         }
 
+        public async Task<IEnumerable<Users>> GetAllUsersIncludingInactiveAsync()
+        {
+            return await _userRepository.GetAllUsersIncludingInactiveAsync();
+        }
+
         public async Task<bool> ExistsAsync(Guid userId)
         {
             return await _userRepository.ExistsAsync(userId);

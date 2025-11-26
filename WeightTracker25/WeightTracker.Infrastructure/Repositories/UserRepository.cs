@@ -32,10 +32,30 @@ namespace WeightTracker.Infrastructure.Repositories
                 .FirstOrDefaultAsync(u => u.Username == username && u.DeletedAt == null);
         }
 
+        public async Task<Users?> GetByEmailIncludingInactiveAsync(string email)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<Users?> GetByUsernameIncludingInactiveAsync(string username)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.Username == username);
+        }
+
         public async Task<IEnumerable<Users>> GetAllAsync()
         {
             return await _context.Users
                 .Where(u => u.DeletedAt == null).Where(u => u.IsAdmin == false)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Users>> GetAllUsersIncludingInactiveAsync()
+        {
+            return await _context.Users
+                .Where(u => u.IsAdmin == false)
+                .OrderByDescending(u => u.CreatedAt)
                 .ToListAsync();
         }
 

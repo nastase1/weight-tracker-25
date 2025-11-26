@@ -39,18 +39,37 @@
                             <th>Name</th>
                             <th>Email</th>
                             <th>Member Since</th>
-                            <th></th>
+                            <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var u in FilteredUsers)
                         {
-                            <tr>
+                            <tr class="@(u.DeletedAt.HasValue ? "user-inactive" : "")">
                                 <td>@u.Username</td>
                                 <td>@u.Email</td>
                                 <td>@u.CreatedAt.ToString("yyyy-MM-dd")</td>
+                                <td>
+                                    @if (u.DeletedAt.HasValue)
+                                    {
+                                        <span class="status-badge inactive">Inactive</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge active">Active</span>
+                                    }
+                                </td>
                                 <td class="actions">
                                     <button class="btn btn-sm btn-outline" @onclick="() => OpenUserDetails(u)">View</button>
+                                    @if (u.DeletedAt.HasValue)
+                                    {
+                                        <button class="btn btn-sm btn-success" @onclick="() => ActivateUser(u.UserId)">Activate</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-danger" @onclick="() => DeactivateUser(u.UserId)">Deactivate</button>
+                                    }
                                 </td>
                             </tr>
                         }
@@ -138,5 +157,37 @@
     private async Task Refresh()
     {
         await LoadUsers();
+    }
+
+    private async Task DeactivateUser(Guid userId)
+    {
+        try
+        {
+            var success = await AdminService.DeactivateUserAsync(userId);
+            if (success)
+            {
+                await LoadUsers();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deactivating user: {ex.Message}");
+        }
+    }
+
+    private async Task ActivateUser(Guid userId)
+    {
+        try
+        {
+            var success = await AdminService.ActivateUserAsync(userId);
+            if (success)
+            {
+                await LoadUsers();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error activating user: {ex.Message}");
+        }
     }
 }

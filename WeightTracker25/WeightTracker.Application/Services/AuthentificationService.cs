@@ -29,7 +29,7 @@ namespace WeightTracker.Application.Services
 
         public async Task<UserRegisterResponseDTO> RegisterUserAsync(UserRegisterRequestDTO request)
         {
-            var userByEmail = await _userRepository.GetByEmailAsync(request.Email);
+            var userByEmail = await _userRepository.GetByEmailIncludingInactiveAsync(request.Email);
             if (userByEmail != null)
             {
                 return new UserRegisterResponseDTO
@@ -39,7 +39,7 @@ namespace WeightTracker.Application.Services
                 };
             }
 
-            var userByUsername = await _userRepository.GetByUsernameAsync(request.Username);
+            var userByUsername = await _userRepository.GetByUsernameIncludingInactiveAsync(request.Username);
             if (userByUsername != null)
             {
                 return new UserRegisterResponseDTO
@@ -77,8 +77,7 @@ namespace WeightTracker.Application.Services
 
         public async Task<UserLoginResponseDTO> LoginUserAsync(UserLoginRequestDTO request)
         {
-            var user = await _userRepository.GetByEmailAsync(request.Email);
-
+            var user = await _userRepository.GetByEmailIncludingInactiveAsync(request.Email);
             if (user == null)
             {
                 return new UserLoginResponseDTO
@@ -96,6 +95,16 @@ namespace WeightTracker.Application.Services
                     Success = false,
                     Token = null,
                     Message = "Invalid username or password."
+                };
+            }
+
+            if(user.DeletedAt != null)
+            {
+                return new UserLoginResponseDTO
+                {
+                    Success = false,
+                    Token = null,
+                    Message = "This account has been deactivated."
                 };
             }
 

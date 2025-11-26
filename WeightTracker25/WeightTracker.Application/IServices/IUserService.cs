@@ -11,6 +11,7 @@ namespace WeightTracker.Application.IServices
         public Task<Users> UpdateAsync(Users user);
         public Task<bool> DeleteAsync(Guid userId);
         public Task<IEnumerable<Users>> GetAllAsync();
+        public Task<IEnumerable<Users>> GetAllUsersIncludingInactiveAsync();
         public Task<bool> ExistsAsync(Guid userId);
     }
 }

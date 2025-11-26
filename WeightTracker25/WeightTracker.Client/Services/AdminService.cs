@@ -32,4 +32,16 @@ public class AdminService
 
         return null;
     }
+
+    public async Task<bool> DeactivateUserAsync(Guid userId)
+    {
+        var response = await _httpClient.PostAsync($"api/Admin/users/{userId}/deactivate", null);
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> ActivateUserAsync(Guid userId)
+    {
+        var response = await _httpClient.PostAsync($"api/Admin/users/{userId}/activate", null);
+        return response.IsSuccessStatusCode;
+    }
 }
