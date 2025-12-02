@@ -28,30 +28,16 @@ jobs:
     - name: Generate version
       id: version
       run: |
-        # Read base version from version.txt
-        BASE_VERSION=$(grep "VERSION=" version.txt | cut -d'=' -f2)
-        echo "Base version: $BASE_VERSION"
+        # Read base version from version.txt (format: x.y.z)
+        VERSION=$(grep "VERSION=" version.txt | cut -d'=' -f2)
+        echo "Version: $VERSION"
         
-        # Generate build number from commit count
+        # Store build number for tracking
         BUILD_NUMBER=${{ github.run_number }}
         
-        # For main branch, use semantic versioning
-        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-          VERSION="${BASE_VERSION}.${BUILD_NUMBER}"
-          ASSEMBLY_VERSION="${BASE_VERSION}.${BUILD_NUMBER}"
-          echo "Main branch version: ${VERSION}"
-        else
-          # For other branches, use numeric version for assembly, include branch in informational version
-          ASSEMBLY_VERSION="${BASE_VERSION}.${BUILD_NUMBER}"
-          BRANCH_NAME=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9]/-/g')
-          VERSION="${BASE_VERSION}-${BRANCH_NAME}.${BUILD_NUMBER}"
-          echo "Branch version: ${VERSION} (Assembly: ${ASSEMBLY_VERSION})"
-        fi
-        
         echo "version=${VERSION}" >> $GITHUB_OUTPUT
-        echo "assembly_version=${ASSEMBLY_VERSION}" >> $GITHUB_OUTPUT
         echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
-        echo "Generated version: ${VERSION}"
+        echo "Generated version: ${VERSION} (Build #${BUILD_NUMBER})"
       
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -72,18 +58,13 @@ jobs:
     - name: Update version in project files
       run: |
         VERSION="${{ steps.version.outputs.version }}"
-        ASSEMBLY_VERSION="${{ steps.version.outputs.assembly_version }}"
         echo "Updating version to: $VERSION"
-        echo "Assembly version: $ASSEMBLY_VERSION"
         
-        # Update WeightTracker.API.csproj
-        # Version and InformationalVersion can have branch suffix
+        # Update WeightTracker.API.csproj - all version fields use x.y.z format
         sed -i "s|<Version>.*</Version>|<Version>$VERSION</Version>|g" WeightTracker25/WeightTracker.API/WeightTracker.API.csproj
+        sed -i "s|<AssemblyVersion>.*</AssemblyVersion>|<AssemblyVersion>$VERSION</AssemblyVersion>|g" WeightTracker25/WeightTracker.API/WeightTracker.API.csproj
+        sed -i "s|<FileVersion>.*</FileVersion>|<FileVersion>$VERSION</FileVersion>|g" WeightTracker25/WeightTracker.API/WeightTracker.API.csproj
         sed -i "s|<InformationalVersion>.*</InformationalVersion>|<InformationalVersion>$VERSION</InformationalVersion>|g" WeightTracker25/WeightTracker.API/WeightTracker.API.csproj
-        
-        # AssemblyVersion and FileVersion must be numeric only (no branch suffix)
-        sed -i "s|<AssemblyVersion>.*</AssemblyVersion>|<AssemblyVersion>$ASSEMBLY_VERSION.0</AssemblyVersion>|g" WeightTracker25/WeightTracker.API/WeightTracker.API.csproj
-        sed -i "s|<FileVersion>.*</FileVersion>|<FileVersion>$ASSEMBLY_VERSION.0</FileVersion>|g" WeightTracker25/WeightTracker.API/WeightTracker.API.csproj
         
         echo "Version updated in project files"
     
