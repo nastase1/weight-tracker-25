@@ -767,18 +767,6 @@ code {
     content: "🌐";
 }
 
-.provider-icon.facebook-icon::before {
-    content: "📘";
-}
-
-.provider-icon.microsoft-icon::before {
-    content: "🪟";
-}
-
-.provider-icon.github-icon::before {
-    content: "🐙";
-}
-
 .provider-icon.external-icon::before {
     content: "🔗";
 }
