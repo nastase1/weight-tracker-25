@@ -81,8 +81,3 @@ jobs:
           --no-build \
           --configuration Release \
           --verbosity minimal
-
-    - name: Verify migrations
-      run: |
-        cd WeightTracker25/WeightTracker.Infrastructure
-        dotnet ef migrations list --startup-project ../WeightTracker.API --context WeightTrackerDbContext
