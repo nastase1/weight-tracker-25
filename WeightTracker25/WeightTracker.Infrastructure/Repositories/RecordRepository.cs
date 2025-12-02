@@ -29,6 +29,14 @@ namespace WeightTracker.Infrastructure.Repositories
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Records>> GetAllByUserIdAsync(Guid userId)
+        {
+            return await _context.Records
+                .Where(r => r.UserId == userId)
+                .OrderByDescending(r => r.RecordDate)
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<Records>> GetByUserIdAndDateRangeAsync(Guid userId, DateTime startDate, DateTime endDate)
         {
             return await _context.Records

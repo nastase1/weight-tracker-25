@@ -14,6 +14,7 @@ namespace WeightTracker.Domain.IRepositories
         Task<Users> AddAsync(Users user);
         Task<Users> UpdateAsync(Users user);
         Task<bool> DeleteAsync(Guid userId);
+        Task<bool> PermanentDeleteAsync(Guid userId);
         Task<bool> ExistsAsync(Guid userId);
     }
 }

@@ -86,6 +86,16 @@ namespace WeightTracker.Infrastructure.Repositories
             return true;
         }
 
+        public async Task<bool> PermanentDeleteAsync(Guid userId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+            if (user == null) return false;
+
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<bool> ExistsAsync(Guid userId)
         {
             return await _context.Users

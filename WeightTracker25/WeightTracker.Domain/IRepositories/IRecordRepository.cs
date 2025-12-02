@@ -6,6 +6,7 @@ namespace WeightTracker.Domain.IRepositories
     {
         Task<Records?> GetByIdAsync(Guid recordId);
         Task<IEnumerable<Records>> GetByUserIdAsync(Guid userId);
+        Task<IEnumerable<Records>> GetAllByUserIdAsync(Guid userId);
         Task<IEnumerable<Records>> GetByUserIdAndDateRangeAsync(Guid userId, DateTime startDate, DateTime endDate);
         Task<Records?> GetByUserIdAndDateAsync(Guid userId, DateTime date);
         Task<Records> AddAsync(Records record);

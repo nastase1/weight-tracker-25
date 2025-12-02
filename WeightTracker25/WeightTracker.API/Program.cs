@@ -4,6 +4,7 @@ using WeightTracker.Infrastructure.Repositories;
 using WeightTracker.Domain.IRepositories;
 using WeightTracker.Application.Services;
 using WeightTracker.Application.IServices;
+using WeightTracker.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -67,6 +68,10 @@ builder.Services.AddScoped<IRecordService, RecordService>();
 builder.Services.AddScoped<IAuthentificationService, AuthentificationService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ICleanupService, CleanupService>();
+
+// Register background services
+builder.Services.AddHostedService<CleanupBackgroundService>();
 
 var app = builder.Build();
 
