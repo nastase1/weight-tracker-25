@@ -54,7 +54,7 @@ public class AuthService
         var token = await GetTokenAsync();
         if (!string.IsNullOrEmpty(token))
         {
-            _httpClient.DefaultRequestHeaders.Authorization = 
+            _httpClient.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
         else
@@ -75,16 +75,16 @@ public class AuthService
             };
 
             var response = await _httpClient.PostAsJsonAsync("api/Authentification/login", loginDto);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var apiResponse = await response.Content.ReadFromJsonAsync<UserLoginResponseDTO>();
-                
+
                 if (apiResponse != null && apiResponse.Success && !string.IsNullOrEmpty(apiResponse.Token))
                 {
                     await _localStorage.SetItemAsync(TOKEN_KEY, apiResponse.Token);
                     await SetAuthorizationHeaderAsync();
-                    
+
                     try
                     {
                         var userResponse = await _httpClient.GetAsync("api/User/me");
@@ -117,9 +117,9 @@ public class AuthService
                         };
                         await _localStorage.SetItemAsync(USER_KEY, user);
                     }
-                    
+
                     AuthenticationStateChanged?.Invoke(true);
-                    
+
                     return new UserLoginResponseDTO
                     {
                         Success = true,
@@ -181,11 +181,11 @@ public class AuthService
             };
 
             var response = await _httpClient.PostAsJsonAsync("api/Authentification/register", registerDto);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var apiResponse = await response.Content.ReadFromJsonAsync<UserRegisterResponseDTO>();
-                
+
                 if (apiResponse != null && apiResponse.Success)
                 {
                     var loginResult = await LoginAsync(new UserLoginRequestDTO
@@ -198,7 +198,7 @@ public class AuthService
                     if (loginResult.Success)
                     {
                         var user = await GetCurrentUserAsync();
-                        
+
                         return new UserRegisterResponseDTO
                         {
                             Success = true,
@@ -254,7 +254,7 @@ public class AuthService
 
             var handler = new JwtSecurityTokenHandler();
             var jwtToken = handler.ReadJwtToken(token);
-            
+
             var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub);
             if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId))
             {
@@ -275,5 +275,10 @@ public class AuthService
         await _localStorage.RemoveItemAsync(USER_KEY);
         _httpClient.DefaultRequestHeaders.Authorization = null;
         AuthenticationStateChanged?.Invoke(false);
+    }
+
+    public void TriggerAuthenticationStateChanged(bool isAuthenticated)
+    {
+        AuthenticationStateChanged?.Invoke(isAuthenticated);
     }
 }

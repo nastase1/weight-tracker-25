@@ -10,6 +10,7 @@ namespace WeightTracker.Application.IServices
         Task<UserLoginResponseDTO> LoginUserAsync(UserLoginRequestDTO request);
         Task<ForgotPasswordResponseDTO> ForgotPasswordAsync(ForgotPasswordRequestDTO request);
         Task<ResetPasswordResponseDTO> ResetPasswordAsync(ResetPasswordRequestDTO request);
+        Task<string> AuthenticateWithGoogleAsync(string email, string? name, string? googleId);
         string HashPassword(string password);
         bool VerifyPassword(string password, string passwordHash);
     }

@@ -2,6 +2,7 @@
 @using WeightTracker.Domain.Entities
 @inject WeightService WeightService
 @inject AuthService AuthService
+@implements IDisposable
 
 <div class="container fade-in-up">
     <div class="dashboard-header">
@@ -9,7 +10,7 @@
             <h1 class="gradient-text">Welcome back, @(currentUser?.Username ?? "User")!</h1>
             <p class="welcome-subtitle">Track your weight journey and reach your goals</p>
         </div>
-        
+
         <div class="quick-actions">
             <button class="btn btn-primary animate-pulse" @onclick="ShowAddWeightModal">
                 Add Today's Weight
@@ -145,7 +146,7 @@
                 <h3>@(isEditMode ? "Edit Weight Entry" : "Add Weight Entry")</h3>
                 <button class="modal-close" @onclick="CloseAddWeightModal">&times;</button>
             </div>
-            
+
             <form @onsubmit="SaveWeightEntry" @onsubmit:preventDefault="true">
                 <div class="modal-body">
                     <div class="form-group">
@@ -160,7 +161,8 @@
 
                     <div class="form-group">
                         <label class="form-label">Notes (optional)</label>
-                        <textarea @bind="newWeightEntry.Notes" class="form-control" rows="3" placeholder="Add any notes about your weight today..."></textarea>
+                        <textarea @bind="newWeightEntry.Notes" class="form-control" rows="3"
+                            placeholder="Add any notes about your weight today..."></textarea>
                     </div>
                     @if (!string.IsNullOrEmpty(ErrorMessage))
                     {
@@ -202,6 +204,24 @@
     {
         currentUser = await AuthService.GetCurrentUserAsync();
         await LoadData();
+
+        // Ascultă schimbările de autentificare
+        AuthService.AuthenticationStateChanged += OnAuthenticationStateChanged;
+    }
+
+    private async void OnAuthenticationStateChanged(bool isAuthenticated)
+    {
+        if (isAuthenticated)
+        {
+            currentUser = await AuthService.GetCurrentUserAsync();
+            await LoadData();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        AuthService.AuthenticationStateChanged -= OnAuthenticationStateChanged;
     }
 
     private async Task LoadData()
