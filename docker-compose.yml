@@ -7,16 +7,19 @@ services:
       dockerfile: docker/DOCKERFILE
     container_name: weighttracker-api
     ports:
-      - "5271:5271"
+      - "5028:5028"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:5271
+      - ASPNETCORE_URLS=http://+:5028
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/weightTracker.db
     volumes:
       # Persist database data
       - weighttracker-data:/app/data
+      # Persist database backups
+      - weighttracker-backups:/app/backups
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5271/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:5028/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -28,11 +31,14 @@ services:
       dockerfile: docker/Dockerfile.client
     container_name: weighttracker-client
     ports:
-      - "8080:80"
+      - "5110:80"
     depends_on:
-      - weighttracker-api
+      weighttracker-api:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   weighttracker-data:
+    driver: local
+  weighttracker-backups:
     driver: local

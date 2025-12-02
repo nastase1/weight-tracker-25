@@ -191,9 +191,15 @@ wwwroot/dist/
 wwwroot/node_modules/
 wwwroot/build/
 
-# Migrations
-**/Migrations
-
-# Database
+# Database files (but keep migrations in source control!)
 weightTracker.db
+*.db
+*.db-shm
+*.db-wal
+
+# Backups (these are environment-specific)
+**/Backups/*.sqlite
+**/Backups/*.bak
+
+# Local configuration
 WeightTracker25/WeightTracker.API/appsettings.json

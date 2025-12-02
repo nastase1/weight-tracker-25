@@ -26,7 +26,7 @@ services:
       dockerfile: docker/Dockerfile.client
     container_name: weighttracker-client-dev
     ports:
-      - "8080:80"
+      - "5110:80"
     depends_on:
       - weighttracker-api
     restart: unless-stopped

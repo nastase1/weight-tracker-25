@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WeightTracker.Infrastructure.Context;
 using WeightTracker.Infrastructure.Repositories;
+using WeightTracker.Infrastructure.Services;
 using WeightTracker.Domain.IRepositories;
 using WeightTracker.Application.Services;
 using WeightTracker.Application.IServices;
@@ -68,13 +69,93 @@ builder.Services.AddScoped<IAuthentificationService, AuthentificationService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
+// Register database migration and backup services
+builder.Services.AddScoped<DatabaseMigrationService>();
+builder.Services.AddSingleton(sp => 
+{
+    var logger = sp.GetRequiredService<ILogger<DatabaseBackupService>>();
+    var backupPath = Path.Combine(AppContext.BaseDirectory, "backups");
+    return new DatabaseBackupService(logger, backupPath);
+});
+
 var app = builder.Build();
 
-// Ensure database is created and migrations are applied
+// Apply database migrations with backup and proper error handling
 using (var scope = app.Services.CreateScope())
 {
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     var context = scope.ServiceProvider.GetRequiredService<WeightTrackerDbContext>();
-    context.Database.EnsureCreated();
+    var migrationService = scope.ServiceProvider.GetRequiredService<DatabaseMigrationService>();
+    var backupService = scope.ServiceProvider.GetRequiredService<DatabaseBackupService>();
+    
+    try
+    {
+        logger.LogInformation("Starting database initialization...");
+        
+        // Get database path from connection string
+        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+        var dbPath = connectionString?.Replace("Data Source=", "").Trim() ?? "weightTracker.db";
+        
+        // Make path absolute if relative
+        if (!Path.IsPathRooted(dbPath))
+        {
+            dbPath = Path.Combine(AppContext.BaseDirectory, dbPath);
+        }
+        
+        // Create backup before migration if database exists
+        if (File.Exists(dbPath))
+        {
+            logger.LogInformation("Creating backup before applying migrations...");
+            var backupResult = await backupService.CreateBackupAsync(dbPath);
+            
+            if (backupResult.Success)
+            {
+                logger.LogInformation($"Backup created successfully at: {backupResult.BackupPath}");
+            }
+            else
+            {
+                logger.LogWarning($"Backup failed: {backupResult.ErrorMessage}");
+            }
+        }
+        
+        // Get application version
+        var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+        var appVersion = assembly.GetName().Version?.ToString() ?? "1.0.0.0";
+        var commitSha = Environment.GetEnvironmentVariable("COMMIT_SHA");
+        var buildNumberStr = Environment.GetEnvironmentVariable("BUILD_NUMBER");
+        int.TryParse(buildNumberStr, out int buildNumber);
+        
+        // Apply migrations with version tracking
+        var migrationResult = await migrationService.MigrateAsync(appVersion, buildNumber, commitSha);
+        
+        if (migrationResult.Success)
+        {
+            if (migrationResult.WasCreated)
+            {
+                logger.LogInformation("New database created and initialized successfully.");
+            }
+            else if (migrationResult.AppliedMigrations.Any())
+            {
+                logger.LogInformation($"Successfully applied {migrationResult.AppliedMigrations.Count} migration(s).");
+            }
+            else
+            {
+                logger.LogInformation("Database is up to date.");
+            }
+            
+            logger.LogInformation($"Current database version: {migrationResult.CurrentVersion}");
+        }
+        else
+        {
+            logger.LogError($"Migration failed: {migrationResult.ErrorMessage}");
+            throw new Exception($"Database migration failed: {migrationResult.ErrorMessage}");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogCritical(ex, "Critical error during database initialization. Application startup failed.");
+        throw;
+    }
 }
 
 // Configure the HTTP request pipeline.
