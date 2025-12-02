@@ -56,6 +56,8 @@ namespace WeightTracker.Application.Services
                 Username = request.Username,
                 Email = request.Email,
                 PasswordHash = HashPassword(request.Password),
+                LoginProvider = null, // Regular email/password registration
+                ExternalUserId = null,
                 CreatedAt = DateTime.UtcNow
             };
 

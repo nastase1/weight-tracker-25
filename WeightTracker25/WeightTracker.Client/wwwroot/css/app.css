@@ -729,3 +729,56 @@ code {
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
+
+/* Login type styles */
+.login-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.login-type.local {
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.login-type.external {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.provider-icon {
+    width: 14px;
+    height: 14px;
+    display: inline-block;
+}
+
+.provider-icon.email-icon::before {
+    content: "✉";
+}
+
+.provider-icon.google-icon::before {
+    content: "🌐";
+}
+
+.provider-icon.facebook-icon::before {
+    content: "📘";
+}
+
+.provider-icon.microsoft-icon::before {
+    content: "🪟";
+}
+
+.provider-icon.github-icon::before {
+    content: "🐙";
+}
+
+.provider-icon.external-icon::before {
+    content: "🔗";
+}

@@ -38,6 +38,7 @@
                         <tr>
                             <th>Name</th>
                             <th>Email</th>
+                            <th>Login Type</th>
                             <th>Member Since</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -49,6 +50,22 @@
                             <tr class="@(u.DeletedAt.HasValue ? "user-inactive" : "")">
                                 <td>@u.Username</td>
                                 <td>@u.Email</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(u.LoginProvider))
+                                    {
+                                        <span class="login-type external">
+                                            <i class="provider-icon @GetProviderIcon(u.LoginProvider)"></i>
+                                            @u.LoginProvider
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="login-type local">
+                                            <i class="provider-icon email-icon"></i>
+                                            Email/Password
+                                        </span>
+                                    }
+                                </td>
                                 <td>@u.CreatedAt.ToString("yyyy-MM-dd")</td>
                                 <td>
                                     @if (u.DeletedAt.HasValue)
@@ -96,6 +113,23 @@
                 <div class="modal-body">
                     <div class="detail-row"><strong>Name:</strong> @selectedUser.Username</div>
                     <div class="detail-row"><strong>Email:</strong> @selectedUser.Email</div>
+                    <div class="detail-row">
+                        <strong>Login Type:</strong> 
+                        @if (!string.IsNullOrEmpty(selectedUser.LoginProvider))
+                        {
+                            <span class="login-type external">
+                                <i class="provider-icon @GetProviderIcon(selectedUser.LoginProvider)"></i>
+                                @selectedUser.LoginProvider Login
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="login-type local">
+                                <i class="provider-icon email-icon"></i>
+                                Email/Password Registration
+                            </span>
+                        }
+                    </div>
                     <div class="detail-row"><strong>Joined:</strong> @selectedUser.CreatedAt.ToString("MMMM dd, yyyy")</div>
                     <div class="detail-row"><strong>Id:</strong> @selectedUser.UserId</div>
                 </div>
@@ -189,5 +223,14 @@
         {
             Console.WriteLine($"Error activating user: {ex.Message}");
         }
+    }
+
+    private string GetProviderIcon(string provider)
+    {
+        return provider?.ToLower() switch
+        {
+            "google" => "google-icon",
+            _ => "external-icon"
+        };
     }
 }
