@@ -10,6 +10,8 @@ namespace WeightTracker.Domain.Entities
         public string Username { get; set; } = null!;
         public string Email { get; set; } = null!;
         public string PasswordHash { get; set; } = null!;
+        public string? LoginProvider { get; set; } // e.g., "Google", "Facebook"
+        public string? ExternalUserId { get; set; } // id from external provider
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
