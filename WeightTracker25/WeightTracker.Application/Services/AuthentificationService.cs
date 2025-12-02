@@ -98,7 +98,7 @@ namespace WeightTracker.Application.Services
                 };
             }
 
-            if(user.DeletedAt != null)
+            if (user.DeletedAt != null)
             {
                 return new UserLoginResponseDTO
                 {
@@ -242,6 +242,54 @@ namespace WeightTracker.Application.Services
                 Success = true,
                 Message = "Password reset successfully. You can now login with your new password."
             };
+        }
+
+        public async Task<string> AuthenticateWithGoogleAsync(string email, string? name, string? googleId)
+        {
+            var user = await _userRepository.GetByEmailIncludingInactiveAsync(email);
+
+            if (user == null)
+            {
+                user = new Users
+                {
+                    UserId = Guid.NewGuid(),
+                    Email = email,
+                    Username = name ?? email.Split('@')[0],
+                    PasswordHash = "",
+                    LoginProvider = "Google",
+                    ExternalUserId = googleId,
+                    CreatedAt = DateTime.UtcNow,
+                    IsAdmin = false
+                };
+
+                await _userRepository.AddAsync(user);
+
+                try
+                {
+                    await _emailService.SendWelcomeEmailAsync(user.Email, user.Username);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to send welcome email: {ex.Message}");
+                }
+            }
+            else
+            {
+                if (user.DeletedAt != null)
+                {
+                    throw new InvalidOperationException("This account has been deactivated.");
+                }
+
+                if (string.IsNullOrEmpty(user.LoginProvider) || user.LoginProvider == "JWT")
+                {
+                    user.LoginProvider = "Google";
+                    user.ExternalUserId = googleId;
+                    user.UpdatedAt = DateTime.UtcNow;
+                    await _userRepository.UpdateAsync(user);
+                }
+            }
+
+            return GenerateJwtToken(user, rememberMe: true);
         }
     }
 }

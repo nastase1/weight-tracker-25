@@ -1,0 +1,102 @@
+@page "/login-success"
+@using Microsoft.AspNetCore.Components
+@using Blazored.LocalStorage
+@using System.Net.Http.Headers
+@using WeightTracker.Domain.Entities
+@using System.Net.Http.Json // EROARE 1: Adăugat pentru ReadFromJsonAsync
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager Navigation
+@inject AuthService AuthService
+@inject HttpClient HttpClient
+
+<div class="loading-container">
+    <div class="spinner"></div>
+    <p>Completing sign in...</p>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Token { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Error { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(Error))
+        {
+            Navigation.NavigateTo($"/auth?error={Error}");
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(Token))
+        {
+            try
+            {
+                await LocalStorage.SetItemAsync("auth_token", Token);
+
+                Console.WriteLine($"Token saved: {Token.Substring(0, Math.Min(Token.Length, 20))}...");
+
+                HttpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", Token);
+
+                Console.WriteLine("Fetching user data from API...");
+                var response = await HttpClient.GetAsync("api/User/me");
+
+                Console.WriteLine($"API Response Status: {response.StatusCode}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Users? user = await response.Content.ReadFromJsonAsync<Users>();
+
+                    Console.WriteLine($"User received: {user?.Username ?? "NULL"}");
+
+                    if (user != null)
+                    {
+                        await LocalStorage.SetItemAsync("auth_user", user);
+                        Console.WriteLine($"User saved to LocalStorage: {user.Username}");
+
+                        await AuthService.SetAuthorizationHeaderAsync();
+
+                        AuthService.TriggerAuthenticationStateChanged(true);
+                        Console.WriteLine("AuthenticationStateChanged triggered");
+
+                        await Task.Delay(200);
+
+                        if (user.IsAdmin)
+                        {
+                            Navigation.NavigateTo("/admin", forceLoad: true);
+                        }
+                        else
+                        {
+                            Navigation.NavigateTo("/", forceLoad: true);
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        Console.WriteLine("ERROR: User is null after deserialization");
+                    }
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"API Error: {errorContent}");
+                }
+
+                Navigation.NavigateTo("/auth?error=failed_to_load_user");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing Google login: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+
+                Navigation.NavigateTo("/auth?error=processing_failed");
+            }
+        }
+        else
+        {
+            Navigation.NavigateTo("/auth?error=no_token");
+        }
+    }
+}
