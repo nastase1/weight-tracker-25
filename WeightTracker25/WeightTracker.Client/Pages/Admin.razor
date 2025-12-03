@@ -38,7 +38,7 @@
                         <tr>
                             <th>Name</th>
                             <th>Email</th>
-                            <th>Login Type</th>
+                            <th>Registration Type</th>
                             <th>Member Since</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -114,7 +114,7 @@
                     <div class="detail-row"><strong>Name:</strong> @selectedUser.Username</div>
                     <div class="detail-row"><strong>Email:</strong> @selectedUser.Email</div>
                     <div class="detail-row">
-                        <strong>Login Type:</strong> 
+                        <strong>Registration Type:</strong> 
                         @if (!string.IsNullOrEmpty(selectedUser.LoginProvider))
                         {
                             <span class="login-type external">
