@@ -6,7 +6,9 @@ using WeightTracker.Domain.IRepositories;
 using WeightTracker.Application.Services;
 using WeightTracker.Application.IServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.Google;
 using System.Text;
 
 
@@ -25,7 +27,9 @@ builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 })
+.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
@@ -38,6 +42,13 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey ?? ""))
     };
+})
+.AddGoogle(googleOptions =>
+{
+    googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+    googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+    googleOptions.CallbackPath = "/signin-google";
+    googleOptions.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 });
 
 // Configure CORS
