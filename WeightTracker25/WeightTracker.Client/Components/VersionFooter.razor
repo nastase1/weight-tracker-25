@@ -1,0 +1,116 @@
+@using WeightTracker.Client.Services
+@using WeightTracker.Client.Models
+@using Microsoft.JSInterop
+@inject VersionService VersionService
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+<footer class="app-footer @(isVisible ? "visible" : "hidden")">
+    <div class="footer-content">
+        @if (isLoading)
+        {
+            <span class="version-text">Loading version...</span>
+        }
+        else if (versionInfo != null)
+        {
+            <span class="version-text" title="Full version: @versionInfo.Version | Build: @versionInfo.BuildDate">
+                WeightTracker @VersionService.GetShortVersion(versionInfo.Version)
+            </span>
+            
+            @if (showDetails)
+            {
+                <span class="version-details">
+                    | Environment: @versionInfo.Environment
+                    @if (dbInfo?.CurrentVersion != null)
+                    {
+                        <span> | DB: @VersionService.GetShortVersion(dbInfo.CurrentVersion.DatabaseVersion)</span>
+                        <span> | Build: #@dbInfo.CurrentVersion.BuildNumber</span>
+                    }
+                </span>
+            }
+            
+            <button class="version-toggle" @onclick="ToggleDetails" title="@(showDetails ? "Hide details" : "Show details")">
+                <span class="toggle-icon">@(showDetails ? "▼" : "▶")</span>
+            </button>
+        }
+        else
+        {
+            <span class="version-text version-error">Version unavailable</span>
+        }
+    </div>
+</footer>
+
+@code {
+    private VersionInfo? versionInfo;
+    private DatabaseInfo? dbInfo;
+    private bool isLoading = true;
+    private bool showDetails = false;
+    private bool isVisible = true;
+    private DotNetObjectReference<VersionFooter>? dotNetRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadVersionInfo();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("initScrollListener", dotNetRef);
+        }
+    }
+
+    [JSInvokable]
+    public void UpdateVisibility(bool visible)
+    {
+        isVisible = visible;
+        StateHasChanged();
+    }
+
+    private async Task LoadVersionInfo()
+    {
+        isLoading = true;
+        
+        try
+        {
+            versionInfo = await VersionService.GetVersionAsync();
+            
+            // Only load DB info if we're showing details
+            if (showDetails)
+            {
+                dbInfo = await VersionService.GetDatabaseInfoAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading version info: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ToggleDetails()
+    {
+        showDetails = !showDetails;
+        
+        // Load DB info if we don't have it yet
+        if (showDetails && dbInfo == null)
+        {
+            dbInfo = await VersionService.GetDatabaseInfoAsync();
+            StateHasChanged();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (dotNetRef != null)
+        {
+            await JSRuntime.InvokeVoidAsync("removeScrollListener");
+            dotNetRef.Dispose();
+        }
+    }
+}

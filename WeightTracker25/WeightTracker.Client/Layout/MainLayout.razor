@@ -45,15 +45,19 @@
             </nav>
         </header>
         
-        <main class="main-content">
+        <main class="main-content" style="flex: 1;">
             @Body
         </main>
+        
+        <WeightTracker.Client.Components.VersionFooter />
     }
     else
     {
-        <div class="auth-layout">
+        <div class="auth-layout" style="flex: 1;">
             @Body
         </div>
+        
+        <WeightTracker.Client.Components.VersionFooter />
     }
 </div>
 

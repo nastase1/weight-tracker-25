@@ -2,22 +2,42 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main, dev , pipeline-ver-db]
   pull_request:
     branches: [ main, dev ]
 
 env:
   DOTNET_VERSION: '9.0.x'
   REGISTRY: ghcr.io
+  VERSION_FILE: version.txt
 
 jobs:
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build_number: ${{ steps.version.outputs.build_number }}
       
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for versioning
+      
+    - name: Generate version
+      id: version
+      run: |
+        # Read base version from version.txt (format: x.y.z)
+        VERSION=$(grep "VERSION=" version.txt | cut -d'=' -f2)
+        echo "Version: $VERSION"
+        
+        # Store build number for tracking
+        BUILD_NUMBER=${{ github.run_number }}
+        
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+        echo "Generated version: ${VERSION} (Build #${BUILD_NUMBER})"
       
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -35,11 +55,25 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore WeightTracker25/WeightTracker25.sln
       
+    - name: Update version in project files
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        echo "Updating version to: $VERSION"
+        
+        # Update WeightTracker.API.csproj - all version fields use x.y.z format
+        sed -i "s|<Version>.*</Version>|<Version>$VERSION</Version>|g" WeightTracker25/WeightTracker.API/WeightTracker.API.csproj
+        sed -i "s|<AssemblyVersion>.*</AssemblyVersion>|<AssemblyVersion>$VERSION</AssemblyVersion>|g" WeightTracker25/WeightTracker.API/WeightTracker.API.csproj
+        sed -i "s|<FileVersion>.*</FileVersion>|<FileVersion>$VERSION</FileVersion>|g" WeightTracker25/WeightTracker.API/WeightTracker.API.csproj
+        sed -i "s|<InformationalVersion>.*</InformationalVersion>|<InformationalVersion>$VERSION</InformationalVersion>|g" WeightTracker25/WeightTracker.API/WeightTracker.API.csproj
+        
+        echo "Version updated in project files"
+    
     - name: Build solution
       run: |
         dotnet build WeightTracker25/WeightTracker25.sln \
           --no-restore \
-          --configuration Release
+          --configuration Release \
+          /p:Version="${{ steps.version.outputs.version }}"
 
     - name: Run tests
       run: |
@@ -47,5 +81,3 @@ jobs:
           --no-build \
           --configuration Release \
           --verbosity minimal
-
-          

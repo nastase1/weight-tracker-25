@@ -19,6 +19,7 @@ namespace WeightTracker.Infrastructure.Context
         public DbSet<Users> Users { get; set; }
         public DbSet<Records> Records { get; set; }
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+        public DbSet<VersionInfo> VersionHistory { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -58,6 +59,19 @@ namespace WeightTracker.Infrastructure.Context
                     .WithMany()
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<VersionInfo>(entity =>
+            {
+                entity.HasKey(e => e.VersionInfoId);
+                entity.Property(e => e.ApplicationVersion).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.DatabaseVersion).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Environment).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.DeployedAt).IsRequired();
+                entity.Property(e => e.BuildNumber).IsRequired();
+                entity.Property(e => e.CommitSha).HasMaxLength(100);
+                entity.Property(e => e.HostName).HasMaxLength(100);
+                entity.Property(e => e.Notes).HasMaxLength(500);
             });
 
             // Seed data
