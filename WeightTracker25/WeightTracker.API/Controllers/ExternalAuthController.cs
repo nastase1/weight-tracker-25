@@ -36,7 +36,7 @@ namespace WeightTracker.API.Controllers
 
             if (!authenticateResult.Succeeded)
             {
-                return Redirect($"{_configuration["BlazorClientUrl"]}/login?error=google_auth_failed");
+                return Redirect($"{_configuration["BlazorClientUrl"]}/auth?error=google_auth_failed");
             }
 
             var claims = authenticateResult.Principal.Claims;
@@ -46,12 +46,17 @@ namespace WeightTracker.API.Controllers
 
             if (string.IsNullOrEmpty(email))
             {
-                return Redirect($"{_configuration["BlazorClientUrl"]}/login?error=no_email");
+                return Redirect($"{_configuration["BlazorClientUrl"]}/auth?error=no_email");
             }
 
-            var token = await _authService.AuthenticateWithGoogleAsync(email, name, googleId);
+            var result = await _authService.AuthenticateWithGoogleAsync(email, name, googleId);
 
-            return Redirect($"{_configuration["BlazorClientUrl"]}/login-success?token={token}");
+            if (!result.Success)
+            {
+                return Redirect($"{_configuration["BlazorClientUrl"]}/auth?error=account_deactivated");
+            }
+
+            return Redirect($"{_configuration["BlazorClientUrl"]}/login-success?token={result.Token}");
         }
     }
 }

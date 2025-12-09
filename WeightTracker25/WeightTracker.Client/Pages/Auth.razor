@@ -234,8 +234,25 @@
     private UserLoginRequestDTO loginRequest = new UserLoginRequestDTO();
     private UserRegisterRequestDTO registerRequest = new UserRegisterRequestDTO();
 
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? ErrorQuery { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
+        if (!string.IsNullOrEmpty(ErrorQuery))
+        {
+            errorMessage = ErrorQuery switch
+            {
+                "google_auth_failed" => "Google authentication failed. Please try again.",
+                "no_email" => "Could not retrieve email from Google account.",
+                "account_deactivated" => "This account has been deactivated. Please contact support for assistance.",
+                "failed_to_load_user" => "Failed to load user information. Please try again.",
+                "processing_failed" => "An error occurred during authentication. Please try again.",
+                "no_token" => "Authentication token not received.",
+                _ => "An error occurred during authentication."
+            };
+        }
+
         bool isAuthenticated = await AuthService.IsAuthenticatedAsync();
         if (isAuthenticated)
         {

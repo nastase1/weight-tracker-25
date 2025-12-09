@@ -246,7 +246,7 @@ namespace WeightTracker.Application.Services
             };
         }
 
-        public async Task<string> AuthenticateWithGoogleAsync(string email, string? name, string? googleId)
+        public async Task<UserLoginResponseDTO> AuthenticateWithGoogleAsync(string email, string? name, string? googleId)
         {
             var user = await _userRepository.GetByEmailIncludingInactiveAsync(email);
 
@@ -279,7 +279,12 @@ namespace WeightTracker.Application.Services
             {
                 if (user.DeletedAt != null)
                 {
-                    throw new InvalidOperationException("This account has been deactivated.");
+                    return new UserLoginResponseDTO
+                    {
+                        Success = false,
+                        Token = null,
+                        Message = "This account has been deactivated. Please contact support for assistance."
+                    };
                 }
 
                 if (string.IsNullOrEmpty(user.LoginProvider) || user.LoginProvider == "JWT")
@@ -291,7 +296,14 @@ namespace WeightTracker.Application.Services
                 }
             }
 
-            return GenerateJwtToken(user, rememberMe: true);
+            var token = GenerateJwtToken(user, rememberMe: true);
+
+            return new UserLoginResponseDTO
+            {
+                Success = true,
+                Token = token,
+                Message = "Login successful."
+            };
         }
     }
 }
