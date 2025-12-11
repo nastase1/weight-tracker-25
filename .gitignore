@@ -204,3 +204,6 @@ weightTracker.db
 # Local configuration
 WeightTracker25/WeightTracker.API/appsettings.json
 WeightTracker25/WeightTracker.API/appsettings.json
+
+# Allow example file
+!**/appsettings.Example.json
