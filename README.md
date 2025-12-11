@@ -1,14 +1,204 @@
-Weight Traking App
-
-
-
-#  Tutorial - Database Versioning & Migration System
+Weight Tracking App
 
 ## Table of Contents
-1. [Daily Development Workflow](#daily-development-workflow)
-2. [Database Migration Commands](#database-migration-commands)
-3. [Version Management](#version-management)
-4. [API Endpoints Usage](#api-endpoints-usage)
+1. [Quick Start & Setup](#quick-start--setup)
+2. [Configuration & Secrets](#configuration--secrets)
+3. [Daily Development Workflow](#daily-development-workflow)
+4. [Database Migration Commands](#database-migration-commands)
+5. [Version Management](#version-management)
+6. [API Endpoints Usage](#api-endpoints-usage)
+
+---
+
+## Quick Start & Setup
+
+### Prerequisites
+
+- .NET 8.0 SDK
+- Visual Studio 2022 / VS Code / Rider
+- SQLite (included with .NET)
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/nastase1/weight-tracker-25.git
+cd weight-tracker-25
+```
+
+---
+
+## Configuration & Secrets
+
+### Setting Up Application Secrets
+
+You have **two options** to configure application secrets:
+
+#### **Option A: User Secrets (Recommended)**
+
+This is the most secure way for local development. Secrets are stored on your machine and never committed to Git.
+
+**Using Visual Studio:**
+1. Right-click on the `WeightTracker.API` project in Solution Explorer
+2. Select **"Manage User Secrets"**
+3. The `secrets.json` file will open automatically
+4. Copy the template below and fill in your values
+
+**Using Command Line:**
+
+```bash
+cd WeightTracker25/WeightTracker.API
+
+# Initialize user secrets
+dotnet user-secrets init
+
+# Set each secret individually
+dotnet user-secrets set "Jwt:Key" "YOUR_JWT_SECRET_KEY_MIN_32_CHARS"
+dotnet user-secrets set "SmtpSettings:Username" "your-email@gmail.com"
+dotnet user-secrets set "SmtpSettings:Password" "your-app-password"
+dotnet user-secrets set "SmtpSettings:FromEmail" "your-email@gmail.com"
+dotnet user-secrets set "Authentication:Google:ClientId" "your-google-client-id.apps.googleusercontent.com"
+dotnet user-secrets set "Authentication:Google:ClientSecret" "your-google-client-secret"
+
+# Verify secrets are set
+dotnet user-secrets list
+```
+
+**User Secrets Template (secrets.json):**
+
+```json
+{
+  "Jwt": {
+    "Key": "YOUR_SECRET_KEY_HERE_MINIMUM_32_CHARACTERS_LONG"
+  },
+  "SmtpSettings": {
+    "Username": "your-email@gmail.com",
+    "Password": "your-gmail-app-password",
+    "FromEmail": "your-email@gmail.com"
+  },
+  "Authentication": {
+    "Google": {
+      "ClientId": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+      "ClientSecret": "YOUR_CLIENT_SECRET"
+    }
+  }
+}
+```
+
+#### **Option B: Local appsettings.json (Alternative)**
+
+If you prefer using a local file:
+
+1. Copy `appsettings.Example.json` to `appsettings.json`:
+   ```bash
+   cp WeightTracker25/WeightTracker.API/appsettings.Example.json WeightTracker25/WeightTracker.API/appsettings.json
+   ```
+
+2. Edit `appsettings.json` and replace placeholder values with your actual secrets
+
+3. **⚠️ IMPORTANT:** Never commit `appsettings.json` to Git! It's in `.gitignore`.
+
+---
+
+### How to Get Required Credentials
+
+#### JWT Secret Key
+Generate a random string (minimum 32 characters):
+
+**PowerShell:**
+```powershell
+-join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
+```
+
+**Bash/Linux:**
+```bash
+openssl rand -base64 32
+```
+
+#### Gmail SMTP Credentials
+
+1. Go to your [Google Account Settings](https://myaccount.google.com/)
+2. Navigate to **Security** → **2-Step Verification**
+3. Scroll down to **App passwords**
+4. Generate a new app password for "Mail"
+5. Use this 16-character password (not your regular Gmail password)
+
+#### Google OAuth Credentials
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Enable **Google+ API**
+4. Go to **APIs & Services** → **Credentials**
+5. Click **Create Credentials** → **OAuth 2.0 Client ID**
+6. Application type: **Web application**
+7. Add Authorized redirect URIs:
+   - `http://localhost:5028/signin-google` (for local development)
+8. Copy the **Client ID** and **Client Secret**
+
+---
+
+### Running the Application
+
+#### Backend (API)
+
+```bash
+cd WeightTracker25/WeightTracker.API
+dotnet restore
+dotnet run
+```
+
+The API will be available at: `http://localhost:5028`
+
+#### Frontend (Blazor Client)
+
+```bash
+cd WeightTracker25/WeightTracker.Client
+dotnet restore
+dotnet run
+```
+
+The client will be available at: `http://localhost:5110`
+
+---
+
+### Troubleshooting
+
+#### "The 'ClientId' option must be provided"
+
+This means your Google OAuth credentials are not configured.
+
+**Fix:**
+- Verify secrets with: `dotnet user-secrets list` (in WeightTracker.API folder)
+- Ensure `Authentication:Google:ClientId` and `Authentication:Google:ClientSecret` are set
+- Restart the application
+
+#### Secrets Not Loading
+
+**Verify User Secrets ID exists:**
+
+Open `WeightTracker.API.csproj` and check for:
+```xml
+<UserSecretsId>...</UserSecretsId>
+```
+
+If missing, run:
+```bash
+cd WeightTracker25/WeightTracker.API
+dotnet user-secrets init
+```
+
+---
+
+## 🔒 Security Notes
+
+- **NEVER** commit `appsettings.json` to Git
+- **NEVER** commit secrets in any form
+- Use **User Secrets** for local development
+- Use **Environment Variables** or **Azure Key Vault** for production
+- The `.gitignore` is configured to prevent accidental commits of secrets
+
+---
+
+#  Tutorial - Database Versioning & Migration System
 
 ---
 
