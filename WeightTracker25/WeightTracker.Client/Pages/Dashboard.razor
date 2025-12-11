@@ -1,5 +1,7 @@
 @page "/"
 @using WeightTracker.Domain.Entities
+@using Microsoft.AspNetCore.Components.Forms
+@using WeightTracker.Shared.DTOs.Responses.Import
 @inject WeightService WeightService
 @inject AuthService AuthService
 @implements IDisposable
@@ -14,6 +16,10 @@
         <div class="quick-actions">
             <button class="btn btn-primary animate-pulse" @onclick="ShowAddWeightModal">
                 Add Today's Weight
+            </button>
+            <span class="quick-actions-or">or</span>
+            <button class="btn btn-secondary animate-pulse" @onclick="ShowImportModal">
+                Import Data
             </button>
         </div>
     </div>
@@ -189,6 +195,61 @@
     </div>
 }
 
+<!-- Import Data Modal -->
+@if (showImportModal)
+{
+    <div class="modal-overlay" @onclick="CloseImportModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Import Weight Data</h3>
+                <button class="modal-close" @onclick="CloseImportModal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Select JSON file</label>
+                    <InputFile OnChange="@OnFileSelected" class="form-control" accept=".json" />
+                    @if (!string.IsNullOrEmpty(selectedFileName))
+                    {
+                        <div class="mt-2 text-success">Selected: @selectedFileName</div>
+                    }
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">File Format</label>
+                    <div class="format-info">
+                        <p class="text-muted">Supported formats:</p>
+                        <ul class="text-muted small">
+                            <li><strong>Legacy format:</strong> {"weights":[{"date":1676325600000,"weight":71.0}]}</li>
+                            <li><strong>Standard format:</strong> [{"date":"2023-02-13","weight":71.0}]</li>
+                        </ul>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(ImportMessage))
+                {
+                    <div class="@(ImportMessage.Contains("Error") ? "error-message" : "success-message") mt-2">@ImportMessage</div>
+                }
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseImportModal">Cancel</button>
+                <button type="button" class="btn btn-primary" @onclick="ImportData" disabled="@(selectedFile == null || isImporting)">
+                    @if (isImporting)
+                    {
+                        <span class="spinner"></span>
+                        <span>Importing...</span>
+                    }
+                    else
+                    {
+                        <span>Import Data</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private Users? currentUser;
     private WeightStats? weightStats;
@@ -199,6 +260,13 @@
     private bool isEditMode = false;
     private WeightEntry newWeightEntry = new() { Date = DateTime.Today };
     private string ErrorMessage = string.Empty;
+    
+    // Import functionality
+    private bool showImportModal = false;
+    private bool isImporting = false;
+    private IBrowserFile? selectedFile = null;
+    private string selectedFileName = string.Empty;
+    private string ImportMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -305,6 +373,65 @@
         finally
         {
             isSaving = false;
+        }
+    }
+
+    private void ShowImportModal()
+    {
+        showImportModal = true;
+        selectedFile = null;
+        selectedFileName = string.Empty;
+        ImportMessage = string.Empty;
+    }
+
+    private void CloseImportModal()
+    {
+        showImportModal = false;
+        selectedFile = null;
+        selectedFileName = string.Empty;
+        ImportMessage = string.Empty;
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        selectedFileName = e.File.Name;
+        ImportMessage = string.Empty;
+    }
+
+    private async Task ImportData()
+    {
+        if (selectedFile == null) return;
+
+        try
+        {
+            isImporting = true;
+            ImportMessage = string.Empty;
+
+            // Trimite direct IBrowserFile la WeightService
+            var result = await WeightService.ImportWeightDataAsync(selectedFile);
+            
+            if (result.Success)
+            {
+                ImportMessage = $"Success! Imported {result.ImportedRecords} entries.";
+                await LoadData(); // Reîncarcă datele pentru a reflecta importul
+                
+                // Închide modalul după o scurtă întârziere
+                await Task.Delay(2000);
+                CloseImportModal();
+            }
+            else
+            {
+                ImportMessage = $"Error: {result.Message}";
+            }
+        }
+        catch (Exception ex)
+        {
+            ImportMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isImporting = false;
         }
     }
 }

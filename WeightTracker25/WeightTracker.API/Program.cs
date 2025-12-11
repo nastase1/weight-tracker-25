@@ -79,6 +79,7 @@ builder.Services.AddScoped<IRecordService, RecordService>();
 builder.Services.AddScoped<IAuthentificationService, AuthentificationService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IImportService, ImportService>();
 
 // Register database migration and backup services
 builder.Services.AddScoped<DatabaseMigrationService>();

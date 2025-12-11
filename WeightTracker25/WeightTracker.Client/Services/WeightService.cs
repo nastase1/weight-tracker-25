@@ -2,6 +2,10 @@ using WeightTracker.Client.Models;
 using System.Net.Http.Json;
 using WeightTracker.Domain.Entities;
 using WeightTracker.Shared.DTOs.Requests.Record;
+using System.Text.Json;
+using WeightTracker.Shared.DTOs.Requests.Import;
+using WeightTracker.Shared.DTOs.Responses.Import;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace WeightTracker.Client.Services;
 
@@ -240,6 +244,93 @@ public class WeightService
         {
             Console.WriteLine($"Error deleting weight record: {ex.Message}");
             throw;
+        }
+    }
+
+    public async Task<ImportFormatResponseDTO> ImportWeightDataAsync(IBrowserFile file)
+    {
+        try
+        {
+            // Ensure user is authenticated and token is set
+            await _authService.SetAuthorizationHeaderAsync();
+            
+            // Read file content
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024); // 5MB limit
+            using var reader = new StreamReader(stream);
+            var jsonContent = await reader.ReadToEndAsync();
+
+            if (string.IsNullOrWhiteSpace(jsonContent))
+            {
+                return new ImportFormatResponseDTO
+                {
+                    Success = false,
+                    Message = "File is empty or could not be read."
+                };
+            }
+
+            // Try to parse as legacy format first (with Unix timestamps)
+            ImportFormatRequestDTO importRequest;
+            try
+            {
+                importRequest = JsonSerializer.Deserialize<ImportFormatRequestDTO>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                })!;
+            }
+            catch
+            {
+                // If legacy format fails, try to parse as standard format
+                var standardData = JsonSerializer.Deserialize<StandardWeightEntry[]>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                importRequest = new ImportFormatRequestDTO
+                {
+                    Version = 1,
+                    Settings = new List<SettingsFormatRequestDTO>(),
+                    Weights = standardData?.Select(entry => new DataFormatRequestDTO
+                    {
+                        Date = ((DateTimeOffset)entry.Date).ToUnixTimeMilliseconds(),
+                        Weight = (float)entry.Weight
+                    }).ToList() ?? new List<DataFormatRequestDTO>()
+                };
+            }
+
+            // Validate import data
+            if (importRequest?.Weights == null || !importRequest.Weights.Any())
+            {
+                return new ImportFormatResponseDTO
+                {
+                    Success = false,
+                    Message = "No valid weight data found in the file."
+                };
+            }
+
+            // Send to API
+            var response = await _httpClient.PostAsJsonAsync("api/Import/json", importRequest);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ImportFormatResponseDTO>();
+                return result ?? new ImportFormatResponseDTO { Success = false, Message = "Invalid response from server." };
+            }
+            else
+            {
+                return new ImportFormatResponseDTO
+                {
+                    Success = false,
+                    Message = $"Import failed: {response.ReasonPhrase}"
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            return new ImportFormatResponseDTO
+            {
+                Success = false,
+                Message = $"Error importing data: {ex.Message}"
+            };
         }
     }
 }

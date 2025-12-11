@@ -24,6 +24,34 @@
 .quick-actions {
     display: flex;
     gap: 1rem;
+    align-items: center;
+}
+
+.quick-actions-or {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    padding: 0 1rem;
+    position: relative;
+    margin: 0 0.5rem;
+}
+
+.quick-actions-or::before,
+.quick-actions-or::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 15px;
+    height: 1px;
+    background: var(--border-light);
+}
+
+.quick-actions-or::before {
+    left: -20px;
+}
+
+.quick-actions-or::after {
+    right: -20px;
 }
 /*Secondary cards*/
 .second-card{
@@ -329,10 +357,24 @@
     
     .quick-actions {
         width: 100%;
+        flex-wrap: wrap;
+        justify-content: center;
     }
     
     .quick-actions button {
         flex: 1;
+        min-width: 150px;
+    }
+    
+    .quick-actions-or {
+        flex-basis: 100%;
+        text-align: center;
+        margin: 0.5rem 0;
+    }
+    
+    .quick-actions-or::before,
+    .quick-actions-or::after {
+        display: none;
     }
     
     .stat-value {
@@ -357,4 +399,44 @@
     .modal-footer button {
         width: 100%;
     }
+}
+
+/* Import Modal Styles */
+.format-info {
+    background: var(--bg-tertiary);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    margin-top: 1rem;
+}
+
+.format-info p {
+    margin: 0 0 0.5rem 0;
+    font-weight: 600;
+}
+
+.format-info ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.format-info li {
+    margin-bottom: 0.25rem;
+}
+
+.success-message {
+    color: var(--success-color);
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+}
+
+.error-message {
+    color: var(--danger-color);
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
 }
