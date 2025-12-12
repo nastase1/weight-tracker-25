@@ -287,8 +287,6 @@ public class WeightService
 
                 importRequest = new ImportFormatRequestDTO
                 {
-                    Version = 1,
-                    Settings = new List<SettingsFormatRequestDTO>(),
                     Weights = standardData?.Select(entry => new DataFormatRequestDTO
                     {
                         Date = ((DateTimeOffset)entry.Date).ToUnixTimeMilliseconds(),
@@ -446,8 +444,6 @@ public class WeightService
             
             var importRequest = new ImportFormatRequestDTO
             {
-                Version = 1,
-                Settings = new List<SettingsFormatRequestDTO>(),
                 Weights = allWeights
             };
 
