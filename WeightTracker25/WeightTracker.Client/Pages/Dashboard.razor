@@ -1,5 +1,8 @@
 @page "/"
 @using WeightTracker.Domain.Entities
+@using Microsoft.AspNetCore.Components.Forms
+@using WeightTracker.Shared.DTOs.Responses.Import
+@using WeightTracker.Shared.DTOs.Requests.Import
 @inject WeightService WeightService
 @inject AuthService AuthService
 @implements IDisposable
@@ -14,6 +17,10 @@
         <div class="quick-actions">
             <button class="btn btn-primary animate-pulse" @onclick="ShowAddWeightModal">
                 Add Today's Weight
+            </button>
+            <span class="quick-actions-or">or</span>
+            <button class="btn btn-secondary animate-pulse" @onclick="ShowImportModal">
+                Import Data
             </button>
         </div>
     </div>
@@ -189,6 +196,122 @@
     </div>
 }
 
+<!-- Import Data Modal -->
+@if (showImportModal)
+{
+    <div class="modal-overlay" @onclick="CloseImportModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Import Weight Data</h3>
+                <button class="modal-close" @onclick="CloseImportModal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                @if (!showConflicts)
+                {
+                    <div class="form-group">
+                        <label class="form-label">Select JSON file</label>
+                        <InputFile OnChange="@OnFileSelected" class="form-control" accept=".json" />
+                        @if (!string.IsNullOrEmpty(selectedFileName))
+                        {
+                            <div class="mt-2 text-success">Selected: @selectedFileName</div>
+                        }
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">File Format</label>
+                        <div class="format-info">
+                            <p class="text-muted">Supported formats:</p>
+                            <ul class="text-muted small">
+                                <li><strong>Legacy format:</strong> {"weights":[{"date":1676325600000,"weight":71.0}]}</li>
+                                <li><strong>Standard format:</strong> [{"date":"2023-02-13","weight":71.0}]</li>
+                            </ul>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="conflicts-section">
+                        <h4>Data Conflicts Found</h4>
+                        <p class="text-muted">The following dates already have weight entries. Choose which data to keep:</p>
+                        
+                        <div class="conflicts-list">
+                            @foreach (var conflict in conflictingItems)
+                            {
+                                var conflictDate = DateTimeOffset.FromUnixTimeMilliseconds(conflict.Date).DateTime;
+                                <div class="conflict-item">
+                                    <div class="conflict-date">
+                                        <strong>@conflictDate.ToString("dd/MM/yyyy")</strong>
+                                    </div>
+                                    <div class="conflict-choice">
+                                        <label>
+                                            <input type="radio" name="conflict_@conflict.Date" value="keep" checked="@(!conflict.Overwrite)" 
+                                                   @onchange="() => SetConflictChoice(conflict, false)" />
+                                            Keep existing data
+                                        </label>
+                                        <label>
+                                            <input type="radio" name="conflict_@conflict.Date" value="overwrite" checked="@conflict.Overwrite" 
+                                                   @onchange="() => SetConflictChoice(conflict, true)" />
+                                            Use import data (@conflict.Weight kg)
+                                        </label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        
+                        <div class="bulk-actions">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="() => SetAllConflicts(false)">
+                                Keep All Existing
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="() => SetAllConflicts(true)">
+                                Use All Import Data
+                            </button>
+                        </div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(ImportMessage))
+                {
+                    <div class="@(ImportMessage.Contains("Error") ? "error-message" : "success-message") mt-2">@ImportMessage</div>
+                }
+            </div>
+
+            <div class="modal-footer">
+                @if (!showConflicts)
+                {
+                    <button type="button" class="btn btn-secondary" @onclick="CloseImportModal">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="ProcessImport" disabled="@(selectedFile == null || isImporting)">
+                        @if (isImporting)
+                        {
+                            <span class="spinner"></span>
+                            <span>Checking...</span>
+                        }
+                        else
+                        {
+                            <span>Next</span>
+                        }
+                    </button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-secondary" @onclick="BackToFileSelection">Back</button>
+                    <button type="button" class="btn btn-success" @onclick="FinalizeImport" disabled="@isImporting">
+                        @if (isImporting)
+                        {
+                            <span class="spinner"></span>
+                            <span>Importing...</span>
+                        }
+                        else
+                        {
+                            <span>Import Data</span>
+                        }
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private Users? currentUser;
     private WeightStats? weightStats;
@@ -199,6 +322,18 @@
     private bool isEditMode = false;
     private WeightEntry newWeightEntry = new() { Date = DateTime.Today };
     private string ErrorMessage = string.Empty;
+    
+    // Import functionality
+    private bool showImportModal = false;
+    private bool isImporting = false;
+    private IBrowserFile? selectedFile = null;
+    private string selectedFileName = string.Empty;
+    private string ImportMessage = string.Empty;
+    
+    // Conflict resolution
+    private List<DataFormatRequestDTO> conflictingItems = new();
+    private List<DataFormatRequestDTO> allImportItems = new();
+    private bool showConflicts = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -305,6 +440,158 @@
         finally
         {
             isSaving = false;
+        }
+    }
+
+    private void ShowImportModal()
+    {
+        showImportModal = true;
+        selectedFile = null;
+        selectedFileName = string.Empty;
+        ImportMessage = string.Empty;
+        showConflicts = false;
+        conflictingItems.Clear();
+        allImportItems.Clear();
+    }
+
+    private void CloseImportModal()
+    {
+        showImportModal = false;
+        selectedFile = null;
+        selectedFileName = string.Empty;
+        ImportMessage = string.Empty;
+        showConflicts = false;
+        conflictingItems.Clear();
+        allImportItems.Clear();
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        selectedFileName = e.File.Name;
+        ImportMessage = string.Empty;
+    }
+
+    private async Task ProcessImport()
+    {
+        if (selectedFile == null) return;
+
+        try
+        {
+            isImporting = true;
+            ImportMessage = string.Empty;
+
+            // Detectează conflictele
+            conflictingItems = await WeightService.DetectConflictsAsync(selectedFile);
+            
+            if (conflictingItems.Any())
+            {
+                // Sunt conflicte, arată interfața de rezolvare
+                showConflicts = true;
+                // Obține toate datele pentru import
+                allImportItems = await WeightService.ParseWeightFileAsync(selectedFile);
+            }
+            else
+            {
+                // Nu sunt conflicte, importă direct
+                await DirectImport();
+            }
+        }
+        catch (Exception ex)
+        {
+            ImportMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isImporting = false;
+        }
+    }
+
+    private async Task DirectImport()
+    {
+        var result = await WeightService.ImportWeightDataAsync(selectedFile);
+        
+        if (result.Success)
+        {
+            ImportMessage = $"Success! {result.Message}";
+            await LoadData();
+            await Task.Delay(2000);
+            CloseImportModal();
+        }
+        else
+        {
+            ImportMessage = $"Error: {result.Message}";
+        }
+    }
+
+    private void BackToFileSelection()
+    {
+        showConflicts = false;
+        conflictingItems.Clear();
+        allImportItems.Clear();
+    }
+
+    private void SetConflictChoice(DataFormatRequestDTO conflict, bool overwrite)
+    {
+        conflict.Overwrite = overwrite;
+        // Actualizează și în lista completă
+        var allItem = allImportItems.FirstOrDefault(x => x.Date == conflict.Date);
+        if (allItem != null)
+        {
+            allItem.Overwrite = overwrite;
+        }
+    }
+
+    private void SetAllConflicts(bool overwrite)
+    {
+        foreach (var conflict in conflictingItems)
+        {
+            conflict.Overwrite = overwrite;
+            var allItem = allImportItems.FirstOrDefault(x => x.Date == conflict.Date);
+            if (allItem != null)
+            {
+                allItem.Overwrite = overwrite;
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async Task FinalizeImport()
+    {
+        try
+        {
+            isImporting = true;
+            ImportMessage = string.Empty;
+
+            // Importă cu alegerile utilizatorului
+            var result = await WeightService.ImportWithConflictChoicesAsync(allImportItems);
+            
+            if (result.Success)
+            {
+                ImportMessage = $"Success! {result.Message}";
+                await LoadData();
+                await Task.Delay(2000);
+                CloseImportModal();
+            }
+            else
+            {
+                ImportMessage = $"Error: {result.Message}";
+            }
+        }
+        catch (Exception ex)
+        {
+            ImportMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isImporting = false;
+        }
+    }
+
+    // Metodă veche pentru compatibilitate
+    private async Task ImportData()
+    {
+        await ProcessImport();
         }
     }
 }
