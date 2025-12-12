@@ -440,3 +440,123 @@
     border-radius: var(--radius-md);
     font-size: 0.875rem;
 }
+
+/* Conflict Resolution Styles */
+.conflicts-section {
+    margin-bottom: 1rem;
+}
+
+.conflicts-list {
+    max-height: 180px;
+    overflow-y: scroll !important;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    background: var(--bg-secondary);
+    scrollbar-width: thin;
+    scrollbar-color: #007bff #f8f9fa;
+}
+
+/* Custom scrollbar pentru conflicts list */
+.conflicts-list::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+}
+
+.conflicts-list::-webkit-scrollbar-track {
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.conflicts-list::-webkit-scrollbar-thumb {
+    background: #007bff;
+    border-radius: 4px;
+    border: 2px solid #f8f9fa;
+    min-height: 30px;
+}
+
+.conflicts-list::-webkit-scrollbar-thumb:hover {
+    background: #0056b3;
+}
+
+.conflicts-list::-webkit-scrollbar-corner {
+    background: #f8f9fa;
+}
+
+.conflict-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.5rem;
+    background: var(--bg-card);
+}
+
+.conflict-item:last-child {
+    margin-bottom: 0;
+}
+
+.conflict-date {
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 100px;
+}
+
+.conflict-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.conflict-choice label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.conflict-choice input[type="radio"] {
+    margin: 0;
+}
+
+.bulk-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-light);
+}
+
+.bulk-actions .btn {
+    min-width: 140px;
+    font-size: 0.875rem;
+}
+
+/* Responsive adjustments for conflicts */
+@media (max-width: 640px) {
+    .conflict-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .conflict-choice {
+        width: 100%;
+    }
+    
+    .bulk-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .bulk-actions .btn {
+        min-width: auto;
+        width: 100%;
+    }
+}

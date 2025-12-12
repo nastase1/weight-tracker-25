@@ -4,5 +4,6 @@ namespace WeightTracker.Shared.DTOs.Requests.Import
     {
         public long Date { get; set; } // Unix timestamp in milliseconds
         public float Weight { get; set; }
+        public bool Overwrite { get; set; } = false;
     }
 }

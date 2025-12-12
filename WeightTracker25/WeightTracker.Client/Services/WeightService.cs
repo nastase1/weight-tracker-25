@@ -333,4 +333,154 @@ public class WeightService
             };
         }
     }
+
+    public async Task<List<DataFormatRequestDTO>> DetectConflictsAsync(IBrowserFile file)
+    {
+        try
+        {
+            // Check if user is authenticated
+            var isAuthenticated = await _authService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                return new List<DataFormatRequestDTO>();
+            }
+            
+            // Ensure user is authenticated and token is set
+            await _authService.SetAuthorizationHeaderAsync();
+            
+            // Parse file content
+            var weights = await ParseWeightFileAsync(file);
+            if (weights == null || !weights.Any())
+            {
+                return new List<DataFormatRequestDTO>();
+            }
+
+            // Get existing records to detect conflicts
+            var existingEntries = await GetWeightEntriesAsync();
+            var existingDates = existingEntries.Select(e => e.Date.Date).ToHashSet();
+
+            // Mark conflicts
+            foreach (var weight in weights)
+            {
+                var recordDate = DateTimeOffset.FromUnixTimeMilliseconds(weight.Date).Date;
+                if (existingDates.Contains(recordDate))
+                {
+                    // Found conflict - mark as requiring user choice
+                    weight.Overwrite = false; // Default to not overwrite
+                }
+            }
+
+            return weights.Where(w => existingDates.Contains(DateTimeOffset.FromUnixTimeMilliseconds(w.Date).Date)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error detecting conflicts: {ex.Message}");
+            return new List<DataFormatRequestDTO>();
+        }
+    }
+
+    public async Task<List<DataFormatRequestDTO>> ParseWeightFileAsync(IBrowserFile file)
+    {
+        try
+        {
+            // Read file content
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024); // 5MB limit
+            using var reader = new StreamReader(stream);
+            var jsonContent = await reader.ReadToEndAsync();
+
+            if (string.IsNullOrWhiteSpace(jsonContent))
+            {
+                return new List<DataFormatRequestDTO>();
+            }
+
+            // Try to parse as legacy format first (with Unix timestamps)
+            try
+            {
+                var importRequest = JsonSerializer.Deserialize<ImportFormatRequestDTO>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                })!;
+                
+                return importRequest?.Weights ?? new List<DataFormatRequestDTO>();
+            }
+            catch
+            {
+                // If legacy format fails, try to parse as standard format
+                var standardData = JsonSerializer.Deserialize<StandardWeightEntry[]>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                return standardData?.Select(entry => new DataFormatRequestDTO
+                {
+                    Date = ((DateTimeOffset)entry.Date).ToUnixTimeMilliseconds(),
+                    Weight = (float)entry.Weight,
+                    Overwrite = false
+                }).ToList() ?? new List<DataFormatRequestDTO>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error parsing file: {ex.Message}");
+            return new List<DataFormatRequestDTO>();
+        }
+    }
+
+    public async Task<ImportFormatResponseDTO> ImportWithConflictChoicesAsync(List<DataFormatRequestDTO> allWeights)
+    {
+        try
+        {
+            // Check if user is authenticated
+            var isAuthenticated = await _authService.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                return new ImportFormatResponseDTO
+                {
+                    Success = false,
+                    Message = "You must be logged in to import data. Please log in and try again."
+                };
+            }
+            
+            // Ensure user is authenticated and token is set
+            await _authService.SetAuthorizationHeaderAsync();
+            
+            var importRequest = new ImportFormatRequestDTO
+            {
+                Version = 1,
+                Settings = new List<SettingsFormatRequestDTO>(),
+                Weights = allWeights
+            };
+
+            // Send to API
+            var response = await _httpClient.PostAsJsonAsync("api/Import/json", importRequest);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ImportFormatResponseDTO>();
+                return result ?? new ImportFormatResponseDTO { Success = false, Message = "Invalid response from server." };
+            }
+            else
+            {
+                return new ImportFormatResponseDTO
+                {
+                    Success = false,
+                    Message = $"Import failed: {response.ReasonPhrase}"
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            return new ImportFormatResponseDTO
+            {
+                Success = false,
+                Message = $"Error importing data: {ex.Message}"
+            };
+        }
+    }
+}
+
+public class StandardWeightEntry
+{
+    public DateTime Date { get; set; }
+    public decimal Weight { get; set; }
 }
